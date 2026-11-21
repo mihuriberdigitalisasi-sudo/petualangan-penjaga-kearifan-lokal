@@ -94,6 +94,76 @@ body.game-active .sidecard:nth-child(3) { display:none; }
   body.game-active .stage-controls { padding-top:3px; }
 }
 
+
+/* ===== KONTROL SENTUH HP: tampil pada semua perangkat layar sentuh ===== */
+@media (pointer: coarse) {
+  body.game-active .stage-controls {
+    display:flex !important;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    min-height:64px;
+    padding:8px 6px max(8px, env(safe-area-inset-bottom));
+    flex-wrap:nowrap;
+  }
+  body.game-active .touch-controls {
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-left:auto;
+    flex-shrink:0;
+  }
+  body.game-active .touch-controls button {
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    width:clamp(58px, 9vw, 82px);
+    height:clamp(54px, 10vh, 72px);
+    min-width:58px;
+    border:2px solid rgba(255,255,255,.75);
+    border-radius:16px;
+    background:rgba(12,48,67,.88);
+    color:#fff;
+    font-size:clamp(23px, 4vw, 32px);
+    font-weight:900;
+    box-shadow:0 4px 0 rgba(0,0,0,.22);
+    touch-action:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    cursor:pointer;
+  }
+  body.game-active .touch-controls button:active {
+    transform:translateY(3px) scale(.97);
+    background:#0b9d8b;
+    box-shadow:0 1px 0 rgba(0,0,0,.2);
+  }
+  body.game-active #jumpBtn {
+    background:#d58b18;
+    border-color:#ffe1a1;
+    width:clamp(66px, 10vw, 90px);
+  }
+  body.game-active .stage-wrap {
+    overflow:visible;
+  }
+}
+@media (max-width:850px) {
+  body.game-active .touch-controls { gap:9px; }
+  body.game-active .stage-controls > span { display:none !important; }
+  body.game-active .stage-controls { justify-content:center; }
+}
+@media (max-height:500px) and (orientation:landscape) and (pointer:coarse) {
+  body.game-active .stage-controls {
+    min-height:58px;
+    padding:4px 5px;
+  }
+  body.game-active .touch-controls button {
+    height:48px;
+    min-width:58px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -137,7 +207,7 @@ body.game-active .sidecard:nth-child(3) { display:none; }
  <div class="game-layout">
   <div class="stage-wrap">
    <canvas id="stage" width="960" height="420" aria-label="Area permainan platformer"></canvas>
-   <div class="stage-controls"><span>⌨️ ← → / A D untuk bergerak • Spasi / ↑ untuk melompat</span><div class="touch-controls"><button id="leftBtn">◀</button><button id="rightBtn">▶</button><button id="jumpBtn">⬆</button></div></div>
+   <div class="stage-controls"><span>⌨️ ← → / A D untuk bergerak • Spasi / ↑ untuk melompat</span><div class="touch-controls" aria-label="Kontrol permainan layar sentuh"><button id="leftBtn" type="button" aria-label="Berjalan ke kiri">◀</button><button id="rightBtn" type="button" aria-label="Berjalan ke kanan">▶</button><button id="jumpBtn" type="button" aria-label="Melompat">⬆</button></div></div>
   </div>
   <aside class="sidebar">
    <div class="sidecard"><h3 id="sideTitle">Misi 1</h3><p id="sideDesc">Jelajahi wilayah dan kumpulkan koin pengetahuan.</p></div>
@@ -319,8 +389,32 @@ function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function drawTree(x,y,s,variant){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle="#80583e";roundRect(-6,-38,12,42,4);ctx.fill();let greens=["#267b59","#328a61","#4b9a68"];ctx.fillStyle=greens[variant%3];for(let a=0;a<3;a++){ctx.beginPath();ctx.arc((a-1)*15,-48-(a%2)*9,22,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#a8d78a";ctx.beginPath();ctx.arc(-12,-60,6,0,Math.PI*2);ctx.fill();ctx.restore();}
 
 function jump(){if(!gameRunning)return;if(level===3){playerObj.vy=-6.2;playerObj.onGround=false;}else if(playerObj.onGround){playerObj.vy=-12.3;playerObj.onGround=false;}}
-function bindHold(id,key){let el=$(id);el.addEventListener("pointerdown",e=>{e.preventDefault();keys[key]=true;el.setPointerCapture(e.pointerId)});["pointerup","pointercancel","lostpointercapture"].forEach(ev=>el.addEventListener(ev,e=>{keys[key]=false;}));}
-bindHold("leftBtn","left");bindHold("rightBtn","right");$("jumpBtn").addEventListener("pointerdown",e=>{e.preventDefault();jump()});
+function bindHold(id,key){
+ const el=$(id);
+ const release=()=>{keys[key]=false;};
+ el.addEventListener("contextmenu",e=>e.preventDefault());
+ el.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  keys[key]=true;
+  try{el.setPointerCapture(e.pointerId);}catch(err){}
+ });
+ ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>el.addEventListener(ev,e=>{
+  e.preventDefault?.();
+  release();
+ }));
+ window.addEventListener("blur",release);
+ document.addEventListener("visibilitychange",()=>{if(document.hidden)release();});
+}
+bindHold("leftBtn","left");
+bindHold("rightBtn","right");
+const jumpButton=$("jumpBtn");
+jumpButton.addEventListener("contextmenu",e=>e.preventDefault());
+jumpButton.addEventListener("pointerdown",e=>{
+ e.preventDefault();
+ jump();
+ try{jumpButton.setPointerCapture(e.pointerId);}catch(err){}
+});
+["pointerup","pointercancel","lostpointercapture"].forEach(ev=>jumpButton.addEventListener(ev,e=>e.preventDefault?.()));
 document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key))e.preventDefault();if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=true;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=true;if(e.key===" "||e.key==="ArrowUp"||e.key.toLowerCase()==="w")jump();});
 document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=false;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=false;});
 function showLesson(){let m=missions[level];showModal(`<span class="lesson-tag">📚 Materi misi ${level+1}</span><h2>${m.icon} ${m.name}</h2><p>${m.desc}</p><div class="factbox">${m.lesson}</div><p><b>Siap menguji pemahamanmu?</b> Jawab satu tantangan berikut untuk menyelesaikan misi.</p><div class="actions"><button class="btn primary" onclick="showQuestion()">Mulai Tantangan ➜</button></div>`);}
