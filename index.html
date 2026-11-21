@@ -49,6 +49,51 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/7;border-radius:13px
 @media(max-width:560px){.shell{padding:9px}.topbar{border-radius:13px;padding:11px}.pill{display:none}.hero-art{min-height:175px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.mission-grid{grid-template-columns:1fr 1fr;gap:8px}.mission{padding:10px;gap:7px}.mission .emoji{font-size:23px}.mission b{font-size:12px}.mission small{font-size:10px}.game-layout{gap:9px}.sidebar{grid-template-columns:1fr}.stage-wrap{padding:6px}.stage-controls{font-size:10px}.touch-controls{display:flex}.result-grid{grid-template-columns:repeat(3,1fr)}.result-box strong{font-size:20px}}
 
 .teacher-dashboard{width:100%;min-width:0}.teacher-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.teacher-head h2{margin:3px 0}.teacher-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 18px}.teacher-stat{background:linear-gradient(135deg,#eef8f7,#f1f5fa);border:1px solid #dce9ec;border-radius:15px;padding:15px;text-align:center}.teacher-stat strong{display:block;color:#0f9d8a;font-size:27px;line-height:1.2}.teacher-stat span{display:block;color:#64788b;font-size:12px;margin-top:4px}.teacher-filter{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:12px 0}.teacher-filter .field{flex:1;min-width:160px}.teacher-actions{display:flex;gap:8px;flex-wrap:wrap}.teacher-table-wrap{width:100%;overflow:auto;max-height:48vh;border:1px solid #e0e9ed;border-radius:12px}.teacher-table{width:100%;border-collapse:collapse;font-size:12px;min-width:850px}.teacher-table th{position:sticky;top:0;background:#edf5f7;color:#18324b;padding:11px 9px;text-align:left;white-space:nowrap}.teacher-table td{padding:10px 9px;border-bottom:1px solid #e7eef1;vertical-align:top}.teacher-table tbody tr:hover{background:#f8fbfc}.teacher-table details summary{cursor:pointer;color:#087968;font-weight:800}.answer-details{min-width:190px;max-width:260px;padding:8px 0}.answer-detail{padding:7px 0;border-bottom:1px dashed #dce5e9}.answer-detail b,.answer-detail span,.answer-detail small{display:block}.answer-detail span{margin:3px 0;color:#526a7c}.answer-detail small,.subcell{color:#748897}.score-value{color:#0f9d8a;font-size:15px}.empty-row{text-align:center!important;padding:26px!important;color:#718391}.modal{width:min(1100px,100%)}@media(max-width:600px){.teacher-stats{gap:6px}.teacher-stat{padding:10px 5px}.teacher-stat strong{font-size:22px}.teacher-head{align-items:center}.teacher-actions .btn{padding:10px 12px;font-size:12px}}
+
+/* ===== Perbaikan layar penuh dan orientasi HP ===== */
+html.game-fullscreen, html.game-fullscreen body { width:100%; height:100%; overflow:hidden; }
+body.game-active { overflow:hidden; }
+body.game-active .shell { width:100%; max-width:none; height:100dvh; margin:0; padding:8px; display:flex; flex-direction:column; }
+body.game-active .topbar { display:none; }
+body.game-active #game { flex:1; min-height:0; margin:0; display:flex; flex-direction:column; }
+body.game-active .game-head { flex:0 0 auto; padding:8px 12px; }
+body.game-active .progress { flex:0 0 7px; margin:6px 0; }
+body.game-active .game-layout { flex:1; min-height:0; margin-top:6px; grid-template-columns:minmax(0,1fr) 220px; }
+body.game-active .stage-wrap { min-height:0; display:flex; flex-direction:column; justify-content:center; padding:6px; }
+body.game-active canvas { width:100%; max-height:calc(100dvh - 115px); object-fit:contain; }
+body.game-active .sidebar { min-height:0; overflow:auto; }
+body.game-active .sidecard { padding:9px; }
+body.game-active .sidecard:nth-child(3) { display:none; }
+.teacher-table th.status-col, .teacher-table td.status-col { white-space:nowrap; }
+.status-running { color:#9a6900; font-weight:800; }
+.status-done { color:#087968; font-weight:800; }
+.status-other { color:#64788b; font-weight:800; }
+@media (max-width:850px) and (orientation:landscape) {
+  body.game-active .shell { padding:4px; }
+  body.game-active .game-head { padding:5px 8px; gap:6px; }
+  body.game-active .game-head .stat { padding:4px 7px; font-size:11px; }
+  body.game-active .game-layout { grid-template-columns:minmax(0,1fr) 155px; gap:6px; }
+  body.game-active .sidebar { display:flex; }
+  body.game-active .sidecard:nth-child(2) { display:none; }
+  body.game-active canvas { max-height:calc(100dvh - 75px); }
+  body.game-active .stage-controls > span { display:none; }
+  body.game-active .touch-controls button { width:54px; height:44px; }
+}
+@media (max-width:850px) and (orientation:portrait) {
+  body.game-active .game-layout { grid-template-columns:1fr; }
+  body.game-active .sidebar { display:none; }
+  body.game-active canvas { max-height:58dvh; }
+  body.game-active .stage-controls { justify-content:center; }
+}
+@media (max-height:500px) and (orientation:landscape) {
+  body.game-active .game-head { padding:3px 7px; }
+  body.game-active .game-head .hint { display:none; }
+  body.game-active .progress { margin:3px 0; }
+  body.game-active .game-layout { margin-top:3px; }
+  body.game-active canvas { max-height:calc(100dvh - 62px); }
+  body.game-active .stage-controls { padding-top:3px; }
+}
+
 </style>
 </head>
 <body>
@@ -121,8 +166,8 @@ $("mode").addEventListener("change",()=>{const g=$("mode").value==="group";$("te
 function showModal(html){$("modal").innerHTML=html;$("modalOverlay").style.display="flex";}
 function closeModal(){$("modalOverlay").style.display="none";}
 $("howBtn").onclick=()=>showModal(`<h2>📖 Cara Bermain</h2><p><b>1.</b> Pilih mode individual atau kelompok dan isi nama pemain/tim.</p><p><b>2.</b> Gunakan tombol panah atau A/D untuk berjalan. Tekan Spasi atau panah atas untuk melompat. Di HP, gunakan tombol ◀ ▶ ⬆.</p><p><b>3.</b> Jelajahi dunia, hindari rintangan unik, kumpulkan koin, dan capai gerbang akhir untuk membuka materi singkat dan menjawab tantangan.</p><p><b>4.</b> Jawaban benar mendapat poin. Baca umpan balik agar semakin paham. Selesaikan enam misi untuk melihat evaluasi akhir.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Mengerti</button></div>`);
-$("startBtn").onclick=async()=>{mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi enam dunia berbeda, kumpulkan koin, dan taklukkan rintangan yang makin menantang.";startLevel();await persistProgress("Berjalan");};
-$("quitBtn").onclick=()=>{stopGame();$("game").style.display="none";$("home").style.display="block";};
+$("startBtn").onclick=async()=>{mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}await enterGameDisplay();level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";await exitGameDisplay();return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi enam dunia berbeda, kumpulkan koin, dan taklukkan rintangan yang makin menantang.";startLevel();await persistProgress("Berjalan");};
+$("quitBtn").onclick=async()=>{stopGame();$("game").style.display="none";$("home").style.display="block";await exitGameDisplay();};
 function updateHud(){ $("score").textContent=score;$("coins").textContent=coins;$("lives").textContent=lives;$("levelLabel").textContent=`Misi ${level+1} dari 6 • ${missions[level].place}`;$("progressBar").style.width=(level/6*100)+"%";$("sideTitle").textContent=`${missions[level].icon} ${missions[level].name}`;$("sideDesc").textContent=missions[level].desc;$("levelList").innerHTML=missions.map((m,i)=>`<div class="level-item ${i===level?"active":levelDone[i]?"done":""}"><span>${levelDone[i]?"✅":i+1+"."}</span><span>${m.icon} ${m.name}</span></div>`).join("");}
 const worldLength=2220;
 const biomeNames=["Permukaan Desa","Hutan Cerita","Gua Bawah Tanah","Laut Nusantara","Hutan Baduy","Kampung Rumah Adat"];
@@ -157,6 +202,30 @@ function startLevel(){
 }
 let finishX=2140;
 function stopGame(){gameRunning=false;if(animId)cancelAnimationFrame(animId);}
+async function enterGameDisplay(){
+ document.body.classList.add("game-active");
+ document.documentElement.classList.add("game-fullscreen");
+ try{
+  if(!document.fullscreenElement && document.documentElement.requestFullscreen){
+   await document.documentElement.requestFullscreen();
+  }
+ }catch(err){console.info("Fullscreen tidak tersedia/diizinkan:",err);}
+ try{
+  if(screen.orientation && screen.orientation.lock){
+   await screen.orientation.lock("landscape");
+  }
+ }catch(err){console.info("Penguncian landscape tidak didukung browser/perangkat:",err);}
+}
+async function exitGameDisplay(){
+ document.body.classList.remove("game-active");
+ document.documentElement.classList.remove("game-fullscreen");
+ try{
+  if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+ }catch(err){}
+ try{
+  if(document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen();
+ }catch(err){}
+}
 let lastTime=0;
 function loop(t){if(!gameRunning)return;let dt=Math.min((t-lastTime)/16.67||1,2);lastTime=t;update(dt);draw(t);animId=requestAnimationFrame(loop);}
 function update(dt){
@@ -285,12 +354,17 @@ async function persistProgress(status){if(!attemptKey||!window.firebaseSaveProgr
 function openTeacherLogin(){showModal(`<h2>🔐 Dashboard Guru</h2><p>Masuk menggunakan akun guru Firebase Authentication (Email/Password).</p><div class="field"><label>Email guru</label><input id="teacherEmail" type="email" autocomplete="username" placeholder="guru@sekolah.sch.id"></div><div class="field" style="margin-top:10px"><label>Kata sandi</label><input id="teacherPassword" type="password" autocomplete="current-password" placeholder="Kata sandi akun guru"></div><div id="teacherError" class="feedback bad"></div><div class="actions"><button class="btn primary" onclick="teacherLogin()">Masuk</button><button class="btn secondary" onclick="closeModal()">Tutup</button></div><p class="hint">Akun guru harus dibuat di Firebase Authentication dan emailnya harus diizinkan pada Realtime Database Rules.</p>`);}
 async function teacherLogin(){const email=$("teacherEmail").value.trim(),password=$("teacherPassword").value;if(!email||!password){$("teacherError").textContent="Isi email dan kata sandi."; $("teacherError").className="feedback bad";return;}try{await window.firebaseTeacherLogin(email,password);await renderTeacherDashboard();}catch(e){$("teacherError").textContent="Login gagal: "+(e.message||"periksa akun guru");$("teacherError").className="feedback bad";}}
 async function renderTeacherDashboard(){try{const rows=await window.firebaseGetResults();window.teacherRows=rows;showTeacherTable(rows);}catch(e){showModal(`<h2>Dashboard tidak dapat dibuka</h2><p>${escapeHTML(e.message||"Akses ditolak. Periksa aturan database dan akun guru.")}</p><div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup</button></div>`);}}
+function isGameCompleted(r){
+ const status=String(r.status||"").trim().toLowerCase();
+ const count=Number(r.completedCount ?? (String(r.completedMissions||"").split(",").filter(Boolean).length));
+ return (status==="selesai" || status==="completed") && count>=6;
+}
 function showTeacherTable(rows){
- const completed=[...rows].filter(r=>r.status==="Selesai" && Number(r.completedCount)>=6)
-   .sort((a,b)=>(b.completedAt||b.updatedAt||0)-(a.completedAt||a.updatedAt||0));
- const cls=[...new Set(completed.map(r=>r.className).filter(Boolean))].sort();
+ const allRows=[...rows].sort((a,b)=>(b.completedAt||b.updatedAt||b.startedAt||0)-(a.completedAt||a.updatedAt||a.startedAt||0));
+ const completed=allRows.filter(isGameCompleted);
+ const cls=[...new Set(allRows.map(r=>r.className).filter(Boolean))].sort();
  showModal(`<div class="teacher-dashboard">
-   <div class="teacher-head"><div><div class="eyebrow">Rekap hasil pembelajaran</div><h2>📊 Dashboard Guru</h2><p class="hint">Menampilkan siswa yang telah menyelesaikan seluruh 6 misi.</p></div><button class="btn secondary" onclick="teacherLogout()">Keluar</button></div>
+   <div class="teacher-head"><div><div class="eyebrow">Rekap hasil pembelajaran</div><h2>📊 Dashboard Guru</h2><p class="hint">Menampilkan seluruh data permainan dari Firebase, termasuk yang sedang berlangsung dan yang sudah selesai.</p></div><button class="btn secondary" onclick="teacherLogout()">Keluar</button></div>
    <div class="teacher-stats">
     <div class="teacher-stat"><strong id="dashTotal">${completed.length}</strong><span>Siswa selesai</span></div>
     <div class="teacher-stat"><strong id="dashAverage">${completed.length?Math.round(completed.reduce((s,r)=>s+(Number(r.score)||0),0)/completed.length):0}</strong><span>Rata-rata skor</span></div>
@@ -298,11 +372,11 @@ function showTeacherTable(rows){
    </div>
    <div class="teacher-filter"><div class="field"><label>Filter kelas</label><select id="filterClass" onchange="filterTeacherRows()"><option value="">Semua kelas</option>${cls.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("")}</select></div>
    <div class="teacher-actions"><button class="btn primary" onclick="refreshTeacherRows()">↻ Perbarui data</button><button class="btn gold" onclick="exportTeacherCSV()">⬇️ Unduh CSV</button></div></div>
-   <div class="teacher-table-wrap"><table class="teacher-table"><thead><tr><th>Nama siswa / kelompok</th><th>Kelas</th><th>Mode</th><th>Skor</th><th>Benar</th><th>Akurasi</th><th>Koin</th><th>Selesai</th><th>Rincian</th></tr></thead><tbody id="teacherTableBody"></tbody></table></div>
+   <div class="teacher-table-wrap"><table class="teacher-table"><thead><tr><th>Nama siswa / kelompok</th><th>Kelas</th><th>Mode</th><th>Status</th><th>Skor</th><th>Benar</th><th>Akurasi</th><th>Koin</th><th>Selesai</th><th>Rincian</th></tr></thead><tbody id="teacherTableBody"></tbody></table></div>
    <p class="hint" id="teacherCount"></p>
    <div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup Dashboard</button></div>
  </div>`);
- window.teacherRows=completed;
+ window.teacherRows=allRows;
  filterTeacherRows();
 }
 function filterTeacherRows(){
@@ -319,14 +393,15 @@ function filterTeacherRows(){
   return `<tr>
    <td><b>${escapeHTML(nm)}</b>${r.groupMembers?`<small class="subcell">${escapeHTML(r.groupMembers)}</small>`:""}</td>
    <td>${escapeHTML(r.className||"-")}</td><td>${r.playMode==="group"?"Kelompok":"Individu"}</td>
+   <td class="status-col"><span class="${isGameCompleted(r)?"status-done":String(r.status||"").toLowerCase()==="berjalan"?"status-running":"status-other"}">${escapeHTML(r.status||"Tidak diketahui")}${isGameCompleted(r)?" ✓":""}</span><small class="subcell"><br>${Number(r.completedCount)||0}/6 misi</small></td>
    <td><b class="score-value">${Number(r.score)||0}</b></td>
    <td>${Number(r.correctAnswers)||0}/${Number(r.totalQuestions)||6}</td>
    <td>${Number(r.accuracy)||0}%</td><td>${Number(r.coins)||0}</td>
    <td>${when?new Date(when).toLocaleString("id-ID"):"-"}</td>
    <td><details><summary>Lihat jawaban</summary><div class="answer-details">${details}</div></details></td>
   </tr>`;
- }).join("")||`<tr><td colspan="9" class="empty-row">Belum ada siswa yang menyelesaikan seluruh misi pada kelas ini.</td></tr>`;
- $("teacherCount").textContent=`Menampilkan ${rows.length} dari ${window.teacherRows.length} siswa yang telah menyelesaikan permainan.`;
+ }).join("")||`<tr><td colspan="10" class="empty-row">Belum ada data permainan untuk kelas ini.</td></tr>`;
+ $("teacherCount").textContent=`Menampilkan ${rows.length} dari ${window.teacherRows.length} data permainan. Siswa selesai: ${rows.filter(isGameCompleted).length}.`;
 }
 async function refreshTeacherRows(){await renderTeacherDashboard();}
 function exportTeacherCSV(){
@@ -344,9 +419,9 @@ function exportTeacherCSV(){
 async function teacherLogout(){try{await window.firebaseTeacherLogout();}catch(e){}closeModal();}
 $("teacherDashBtn").onclick=openTeacherLogin;
 function printResult(){let reflection=$("reflection")?.value||"Belum diisi";let text=`HASIL PETUALANGAN PENJAGA KEARIFAN LOKAL\nPemain/Kelompok: ${player}\nMode: ${mode==="group"?"Kelompok":"Individual"}\nSkor: ${score}\nJawaban benar: ${correctCount}/6\nKoin: ${coins}\nRefleksi: ${reflection}`;let w=window.open("","_blank");if(!w){alert("Izinkan pop-up untuk mencetak hasil.");return;}w.document.write(`<pre style="font:16px system-ui;white-space:pre-wrap">${text.replace(/</g,"&lt;")}</pre>`);w.document.close();w.print();}
-function restart(){closeModal();level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];startLevel();}
-function backHome(){closeModal();stopGame();$("game").style.display="none";$("home").style.display="block";}
-window.closeModal=closeModal;window.showQuestion=showQuestion;window.chooseAnswer=chooseAnswer;window.completeLevel=completeLevel;window.printResult=printResult;window.restart=restart;window.backHome=backHome;window.teacherLogin=teacherLogin;window.filterTeacherRows=filterTeacherRows;window.refreshTeacherRows=refreshTeacherRows;window.exportTeacherCSV=exportTeacherCSV;window.teacherLogout=teacherLogout;
+async function restart(){closeModal();await enterGameDisplay();$("game").style.display="block";$("home").style.display="none";level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;try{await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){console.error("Tidak dapat membuat sesi permainan baru:",err);$("cloudStatus").textContent="⚠️ Sesi baru tidak dapat disimpan: "+(err.message||"periksa koneksi");}startLevel();await persistProgress("Berjalan");}
+async function backHome(){closeModal();stopGame();$("game").style.display="none";$("home").style.display="block";await exitGameDisplay();}
+window.enterGameDisplay=enterGameDisplay;window.exitGameDisplay=exitGameDisplay;window.closeModal=closeModal;window.showQuestion=showQuestion;window.chooseAnswer=chooseAnswer;window.completeLevel=completeLevel;window.printResult=printResult;window.restart=restart;window.backHome=backHome;window.teacherLogin=teacherLogin;window.filterTeacherRows=filterTeacherRows;window.refreshTeacherRows=refreshTeacherRows;window.exportTeacherCSV=exportTeacherCSV;window.teacherLogout=teacherLogout;
 </script>
 
 <script type="module">
