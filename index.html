@@ -207,6 +207,89 @@ body.game-active .sidecard:nth-child(3) { display:none; }
   }
 }
 
+
+/* ===== Dock kontrol HP: lebih tinggi, besar, dan mudah terlihat ===== */
+@media (pointer: coarse) {
+  body.game-active .stage-wrap {
+    position:relative;
+    padding-bottom:8px;
+  }
+  body.game-active .stage-controls {
+    position:absolute !important;
+    left:12px;
+    right:12px;
+    bottom:clamp(18px, 5vh, 38px);
+    z-index:6;
+    width:auto !important;
+    min-height:74px;
+    padding:9px 12px !important;
+    border:1px solid rgba(255,255,255,.55);
+    border-radius:20px;
+    background:rgba(12,43,58,.58);
+    box-shadow:0 5px 18px rgba(0,0,0,.24);
+    backdrop-filter:blur(5px);
+  }
+  body.game-active .touch-controls {
+    width:100%;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    align-items:center;
+    gap:clamp(10px, 2vw, 18px);
+    margin:0 !important;
+  }
+  body.game-active .touch-controls button {
+    width:clamp(66px, 10vw, 88px) !important;
+    height:clamp(58px, 10vh, 76px) !important;
+    min-width:66px;
+    border:2px solid rgba(255,255,255,.9) !important;
+    border-radius:18px !important;
+    background:rgba(33,83,103,.96) !important;
+    color:#fff !important;
+    font-size:clamp(27px, 4vw, 36px) !important;
+    text-shadow:0 2px 3px rgba(0,0,0,.3);
+    box-shadow:0 5px 0 rgba(0,0,0,.3) !important;
+  }
+  body.game-active #jumpBtn {
+    grid-column:1;
+    grid-row:1;
+    justify-self:start;
+    width:clamp(76px, 11vw, 98px) !important;
+    background:#d58b18 !important;
+    border-color:#ffe3a8 !important;
+  }
+  body.game-active #leftBtn {
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+  }
+  body.game-active #rightBtn {
+    grid-column:3;
+    grid-row:1;
+    justify-self:end;
+  }
+  body.game-active .touch-controls button:active {
+    transform:translateY(3px) scale(.96);
+    filter:brightness(1.15);
+    box-shadow:0 2px 0 rgba(0,0,0,.25) !important;
+  }
+}
+@media (max-height:500px) and (orientation:landscape) and (pointer:coarse) {
+  body.game-active .stage-controls {
+    bottom:14px;
+    min-height:64px;
+    padding:6px 10px !important;
+  }
+  body.game-active .touch-controls button {
+    height:52px !important;
+    min-width:62px;
+  }
+}
+@media (max-width:850px) and (orientation:portrait) and (pointer:coarse) {
+  body.game-active .stage-controls {
+    bottom:14px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -243,7 +326,7 @@ body.game-active .sidecard:nth-child(3) { display:none; }
 <main id="game" class="screen" style="display:none">
  <div class="game-head">
   <div><b id="playerLabel">Pemain</b><div class="hint" id="levelLabel">Misi 1 dari 6</div></div>
-  <div class="stats"><div class="stat">⭐ Skor: <span id="score">0</span></div><div class="stat">🪙 Koin: <span id="coins">0</span></div><div class="stat">❤️ Nyawa: <span id="lives">3</span></div></div>
+  <div class="stats"><div class="stat">⭐ Skor: <span id="score">0</span></div><div class="stat">🪙 Koin: <span id="coins">0</span></div><div class="stat">❤️ Nyawa: <span id="lives">3</span></div><button class="btn secondary" id="soundToggle" type="button" aria-label="Matikan suara" style="padding:7px 10px;font-size:12px">🔊 Suara: ON</button></div>
   <button class="btn secondary" id="quitBtn" style="padding:8px 12px">Keluar</button>
  </div>
  <div class="progress"><span id="progressBar"></span></div>
@@ -271,6 +354,57 @@ const missions=[
  {name:"Arsitek Nusantara",icon:"🏠",place:"Kampung Rumah Adat",theme:"#c5b4e8",desc:"Rancang rumah yang bijak terhadap lingkungan dan bencana.",lesson:"Rumah tradisional di berbagai daerah sering menyesuaikan bentuk bangunan dengan lingkungan setempat. Beberapa rumah menggunakan bahan yang relatif ringan, struktur rangka, sambungan yang lentur, atau bentuk panggung. Ciri tersebut dapat membantu menghadapi kondisi tertentu, termasuk guncangan, tetapi tidak semua rumah tradisional otomatis tahan gempa. Keamanan juga dipengaruhi rancangan, sambungan, fondasi, tanah, bahan, dan mutu pengerjaan.",question:"Mengapa beberapa rumah tradisional menggunakan bahan ringan dan sambungan yang dapat memberi kelenturan?",answers:["Agar struktur dapat lebih baik menyesuaikan gerakan atau guncangan tertentu","Agar rumah pasti tidak akan pernah rusak","Agar rumah selalu lebih tinggi dari semua bangunan","Agar tidak membutuhkan fondasi sama sekali"],correct:0,explain:"Benar! Bahan ringan dan sambungan yang dirancang baik dapat membantu struktur menghadapi gerakan tertentu. Namun keamanan tetap bergantung pada rancangan dan kualitas bangunan secara keseluruhan.",coins:5}
 ];
 const $=id=>document.getElementById(id);
+
+/* ===== Efek suara permainan menggunakan Web Audio API ===== */
+let gameAudio=null;
+let soundEnabled=true;
+let footstepClock=0;
+function initGameAudio(){
+ try{
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)return;
+  if(!gameAudio)gameAudio=new AudioContextClass();
+  if(gameAudio.state==="suspended")gameAudio.resume();
+ }catch(err){console.info("Audio tidak tersedia:",err);}
+}
+function tone(freqStart,freqEnd,duration,wave="sine",volume=.07,delay=0){
+ if(!soundEnabled)return;
+ initGameAudio();
+ if(!gameAudio)return;
+ const now=gameAudio.currentTime+delay;
+ const osc=gameAudio.createOscillator();
+ const gain=gameAudio.createGain();
+ osc.type=wave;
+ osc.frequency.setValueAtTime(Math.max(1,freqStart),now);
+ if(freqEnd!==freqStart)osc.frequency.exponentialRampToValueAtTime(Math.max(1,freqEnd),now+duration);
+ gain.gain.setValueAtTime(.0001,now);
+ gain.gain.exponentialRampToValueAtTime(volume,now+.012);
+ gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+ osc.connect(gain);gain.connect(gameAudio.destination);
+ osc.start(now);osc.stop(now+duration+.025);
+}
+function playJumpSound(){
+ tone(260,620,.19,"triangle",.075);
+}
+function playCoinSound(){
+ tone(740,1120,.11,"sine",.065);
+ tone(990,1480,.16,"sine",.055,.09);
+}
+function playFootstepSound(){
+ tone(105,75,.055,"triangle",.022);
+}
+function updateSoundButton(){
+ const b=$("soundToggle");
+ if(!b)return;
+ b.textContent=soundEnabled?"🔊 Suara: ON":"🔇 Suara: OFF";
+ b.setAttribute("aria-label",soundEnabled?"Matikan suara":"Nyalakan suara");
+}
+$("soundToggle").addEventListener("click",()=>{
+ soundEnabled=!soundEnabled;
+ if(soundEnabled)initGameAudio();
+ updateSoundButton();
+});
+
 let mode="solo",player="Penjelajah",studentClass="",teamName="",teamNames="",level=0,score=0,coins=0,lives=3,answered=0,correctCount=0,levelDone=[],worldX=0,keys={},playerObj={},hazards=[],collectibles=[],platforms=[],gameRunning=false,animId=0,questionOpen=false,attemptKey=null,missionAnswers={};
 const canvas=$("stage"),ctx=canvas.getContext("2d");
 function preview(){ $("missionPreview").innerHTML=missions.map((m,i)=>`<div class="mission"><div class="emoji">${m.icon}</div><div><b>${i+1}. ${m.name}</b><small>${m.place}</small></div></div>`).join(""); }
@@ -278,8 +412,8 @@ preview();
 $("mode").addEventListener("change",()=>{const g=$("mode").value==="group";$("teamField").style.display=g?"block":"none";$("modeHint").textContent=g?"Mode kelompok: identitas siswa/koordinator dan kelas tetap dicatat. Isi juga nama kelompok; anggota boleh ditambahkan.":"Mode individual: nama siswa dan kelas dicatat sebagai identitas pemain.";});
 function showModal(html){$("modal").innerHTML=html;$("modalOverlay").style.display="flex";}
 function closeModal(){$("modalOverlay").style.display="none";}
-$("howBtn").onclick=()=>showModal(`<h2>📖 Cara Bermain</h2><p><b>1.</b> Pilih mode individual atau kelompok dan isi nama pemain/tim.</p><p><b>2.</b> Gunakan tombol panah atau A/D untuk berjalan. Tekan Spasi atau panah atas untuk melompat. Di HP, gunakan tombol ◀ ▶ ⬆.</p><p><b>3.</b> Jelajahi dunia, hindari rintangan unik, kumpulkan koin, dan capai gerbang akhir untuk membuka materi singkat dan menjawab tantangan.</p><p><b>4.</b> Jawaban benar mendapat poin. Baca umpan balik agar semakin paham. Selesaikan enam misi untuk melihat evaluasi akhir.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Mengerti</button></div>`);
-$("startBtn").onclick=async()=>{mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}await enterGameDisplay();level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";await exitGameDisplay();return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi enam dunia berbeda, kumpulkan koin, dan taklukkan rintangan yang makin menantang.";startLevel();await persistProgress("Berjalan");};
+$("howBtn").onclick=()=>showModal(`<h2>📖 Cara Bermain</h2><p><b>1.</b> Pilih mode individual atau kelompok dan isi nama pemain/tim.</p><p><b>2.</b> Gunakan tombol panah atau A/D untuk berjalan. Tekan Spasi atau panah atas untuk melompat. Di HP, gunakan tombol ⬆ di kiri untuk melompat dan ◀ ▶ di kanan untuk berjalan. Suara dapat diatur melalui tombol 🔊.</p><p><b>3.</b> Jelajahi dunia, hindari rintangan unik, kumpulkan koin, dan capai gerbang akhir untuk membuka materi singkat dan menjawab tantangan.</p><p><b>4.</b> Jawaban benar mendapat poin. Baca umpan balik agar semakin paham. Selesaikan enam misi untuk melihat evaluasi akhir.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Mengerti</button></div>`);
+$("startBtn").onclick=async()=>{initGameAudio();mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}await enterGameDisplay();level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";await exitGameDisplay();return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi enam dunia berbeda, kumpulkan koin, dan taklukkan rintangan yang makin menantang.";startLevel();await persistProgress("Berjalan");};
 $("quitBtn").onclick=async()=>{stopGame();$("game").style.display="none";$("home").style.display="block";await exitGameDisplay();};
 function updateHud(){ $("score").textContent=score;$("coins").textContent=coins;$("lives").textContent=lives;$("levelLabel").textContent=`Misi ${level+1} dari 6 • ${missions[level].place}`;$("progressBar").style.width=(level/6*100)+"%";$("sideTitle").textContent=`${missions[level].icon} ${missions[level].name}`;$("sideDesc").textContent=missions[level].desc;$("levelList").innerHTML=missions.map((m,i)=>`<div class="level-item ${i===level?"active":levelDone[i]?"done":""}"><span>${levelDone[i]?"✅":i+1+"."}</span><span>${m.icon} ${m.name}</span></div>`).join("");}
 const worldLength=2220;
@@ -344,6 +478,10 @@ function loop(t){if(!gameRunning)return;let dt=Math.min((t-lastTime)/16.67||1,2)
 function update(dt){
  let p=playerObj;const underwater=level===3;let speed=underwater?3.45:4.25;
  p.vx=0;if(keys.left)p.vx=-speed;if(keys.right)p.vx=speed;
+ if(Math.abs(p.vx)>.1&&p.onGround){
+  footstepClock+=dt;
+  if(footstepClock>=14){playFootstepSound();footstepClock=0;}
+ }else{footstepClock=0;}
  p.x+=p.vx*dt;p.x=Math.max(0,Math.min(finishX+30,p.x));
  p.vy+=(underwater?.25:.58)*dt;
  if(underwater&&keys.jump&&p.vy>1)p.vy-=.10*dt;
@@ -352,7 +490,7 @@ function update(dt){
  if(p.y>490){loseLife();return;}
  for(let h of hazards){let hy=h.y+(h.kind==="jelly"?Math.sin(performance.now()/330+h.phase)*12: h.kind==="crystal"?Math.sin(performance.now()/500+h.phase)*3:0);if(hit(p,{x:h.x,y:hy,w:h.w,h:h.h})&&p.inv<=0){loseLife();return;}}
  if(p.inv>0)p.inv-=dt;
- for(let c of collectibles){if(!c.taken&&Math.abs((p.x+p.w/2)-c.x)<25&&Math.abs((p.y+p.h/2)-c.y)<38){c.taken=true;coins++;score+=10;updateHud();}}
+ for(let c of collectibles){if(!c.taken&&Math.abs((p.x+p.w/2)-c.x)<25&&Math.abs((p.y+p.h/2)-c.y)<38){c.taken=true;coins++;score+=10;playCoinSound();updateHud();}}
  if(p.x>finishX){stopGame();showLesson();}
 }
 function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
@@ -431,7 +569,14 @@ function drawExplorer(p,t,cam,biome){let walking=Math.abs(p.vx)>.1&&p.onGround,s
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function drawTree(x,y,s,variant){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle="#80583e";roundRect(-6,-38,12,42,4);ctx.fill();let greens=["#267b59","#328a61","#4b9a68"];ctx.fillStyle=greens[variant%3];for(let a=0;a<3;a++){ctx.beginPath();ctx.arc((a-1)*15,-48-(a%2)*9,22,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#a8d78a";ctx.beginPath();ctx.arc(-12,-60,6,0,Math.PI*2);ctx.fill();ctx.restore();}
 
-function jump(){if(!gameRunning)return;if(level===3){playerObj.vy=-6.2;playerObj.onGround=false;}else if(playerObj.onGround){playerObj.vy=-12.3;playerObj.onGround=false;}}
+function jump(){
+ if(!gameRunning)return;
+ if(level===3){
+  playerObj.vy=-6.2;playerObj.onGround=false;playJumpSound();
+ }else if(playerObj.onGround){
+  playerObj.vy=-12.3;playerObj.onGround=false;playJumpSound();
+ }
+}
 function bindHold(id,key){
  const el=$(id);
  const release=()=>{keys[key]=false;};
