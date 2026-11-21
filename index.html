@@ -348,9 +348,42 @@ async function chooseAnswer(i){
  updateHud();await persistProgress("Berjalan");
 }
 async function completeLevel(){levelDone[level]=true;score+=25;await persistProgress(level===5?"Selesai":"Berjalan");if(level<5){level++;closeModal();startLevel();await persistProgress("Berjalan");}else{closeModal();await finishGame();}}
-async function finishGame(){stopGame();await persistProgress("Selesai");$("progressBar").style.width="100%";$("levelLabel").textContent="Semua misi selesai!";let pct=Math.round(correctCount/6*100),rank=pct>=85?"Pahlawan Kearifan 🌟":pct>=65?"Penjaga Nusantara 🏅":"Penjelajah Tangguh 🌱";showModal(`<div class="eyebrow">Petualangan selesai</div><h2>🎉 Selamat, ${player}!</h2><p>Kamu telah menyelesaikan enam wilayah dan belajar tentang cara menjaga warisan budaya serta alam Nusantara.</p><div class="result-grid"><div class="result-box"><strong>${score}</strong><small>Total skor</small></div><div class="result-box"><strong>${correctCount}/6</strong><small>Jawaban benar</small></div><div class="result-box"><strong>${pct}%</strong><small>Ketepatan</small></div></div><div class="factbox"><b>Gelar petualang:</b> ${rank}<br><b>Koin terkumpul:</b> ${coins}<br><b>Mode:</b> ${mode==="group"?"Kelompok":"Individual"}</div><h3>📋 Evaluasi pemahaman</h3><p>${pct>=85?"Sangat baik! Kamu memahami sebagian besar materi. Pertahankan dan praktikkan sikap menjaga kearifan lokal.":pct>=65?"Bagus! Kamu sudah memahami banyak hal. Baca kembali materi pada misi yang masih membingungkan.":"Terus berlatih! Pelajari kembali enam materi, lalu mainkan lagi agar pemahamanmu meningkat."}</p><p><b>Aksi nyata:</b> Tuliskan satu tindakan yang akan kamu lakukan untuk menjaga budaya atau lingkungan di daerahmu.</p><textarea id="reflection" placeholder="Saya akan ..." style="width:100%;min-height:75px;padding:10px;border:1px solid #cbd9e1;border-radius:10px"></textarea><div class="actions"><button class="btn primary" onclick="printResult()">🖨️ Cetak hasil</button><button class="btn gold" onclick="restart()">🔁 Main Lagi</button><button class="btn secondary" onclick="backHome()">Beranda</button></div><p class="hint">Hasil permainan tersimpan di Firebase untuk direkap oleh guru. Gunakan tombol Cetak untuk menyimpan sebagai PDF atau mencetak.</p>`);}
+async function finishGame(){stopGame();await persistProgress("Selesai");$("progressBar").style.width="100%";$("levelLabel").textContent="Semua misi selesai!";let pct=Math.round(correctCount/6*100),rank=pct>=85?"Pahlawan Kearifan 🌟":pct>=65?"Penjaga Nusantara 🏅":"Penjelajah Tangguh 🌱";showModal(`<div class="eyebrow">Petualangan selesai</div><h2>🎉 Selamat, ${player}!</h2><p>Kamu telah menyelesaikan enam wilayah dan belajar tentang cara menjaga warisan budaya serta alam Nusantara.</p><div class="result-grid"><div class="result-box"><strong>${score}</strong><small>Total skor</small></div><div class="result-box"><strong>${correctCount}/6</strong><small>Jawaban benar</small></div><div class="result-box"><strong>${pct}%</strong><small>Ketepatan</small></div></div><div class="factbox"><b>Gelar petualang:</b> ${rank}<br><b>Koin terkumpul:</b> ${coins}<br><b>Mode:</b> ${mode==="group"?"Kelompok":"Individual"}</div><h3>📋 Evaluasi pemahaman</h3><p>${pct>=85?"Sangat baik! Kamu memahami sebagian besar materi. Pertahankan dan praktikkan sikap menjaga kearifan lokal.":pct>=65?"Bagus! Kamu sudah memahami banyak hal. Baca kembali materi pada misi yang masih membingungkan.":"Terus berlatih! Pelajari kembali enam materi, lalu mainkan lagi agar pemahamanmu meningkat."}</p><p><b>Aksi nyata:</b> Tuliskan satu tindakan yang akan kamu lakukan untuk menjaga budaya atau lingkungan di daerahmu.</p><textarea id="reflection" placeholder="Saya akan ..." style="width:100%;min-height:75px;padding:10px;border:1px solid #cbd9e1;border-radius:10px"></textarea><div class="actions"><button class="btn primary" id="finalSaveBtn" onclick="saveFinalResult()">💾 Simpan Hasil Akhir</button><button class="btn secondary" onclick="printResult()">🖨️ Cetak hasil</button><button class="btn gold" onclick="restart()">🔁 Main Lagi</button><button class="btn secondary" onclick="backHome()">Beranda</button></div><p id="finalSaveStatus" class="hint">Pastikan hasil akhir tersimpan sebelum keluar dari permainan.</p><p class="hint">Hasil permainan tersimpan di Firebase untuk direkap oleh guru. Gunakan tombol Cetak untuk menyimpan sebagai PDF atau mencetak.</p>`);}
 function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-async function persistProgress(status){if(!attemptKey||!window.firebaseSaveProgress)return;const completed=levelDone.map((v,i)=>v?i+1:null).filter(Boolean);const payload={studentName:player,className:studentClass,playMode:mode,groupName:mode==="group"?teamName:"",groupMembers:mode==="group"?teamNames:"",status,currentMission:Math.min(level+1,6),completedMissions:completed.join(","),completedCount:completed.length,score,coins,lives,correctAnswers:correctCount,totalQuestions:answered,accuracy:answered?Math.round(correctCount/answered*100):0,missionAnswers,updatedAt:Date.now(),completedAt:status==="Selesai"?Date.now():null};try{await window.firebaseSaveProgress(attemptKey,payload);$("cloudStatus").textContent="☁️ Hasil tersimpan otomatis • "+(status==="Selesai"?"Semua misi selesai":"Progres diperbarui");}catch(err){$("cloudStatus").textContent="⚠️ Gagal menyimpan: "+(err.message||"periksa koneksi");console.error("Firebase save error",err);}}
+async function persistProgress(status){
+ if(!attemptKey||!window.firebaseSaveProgress){
+  $("cloudStatus").textContent="⚠️ ID sesi belum tersedia. Hasil belum tersimpan.";
+  return false;
+ }
+ const completed=levelDone.map((v,i)=>v?i+1:null).filter(Boolean);
+ const payload={
+  studentName:player,className:studentClass,playMode:mode,
+  groupName:mode==="group"?teamName:"",groupMembers:mode==="group"?teamNames:"",
+  status,currentMission:status==="Selesai"?6:Math.min(level+1,6),
+  completedMissions:completed.join(","),completedCount:completed.length,
+  score,coins,lives,correctAnswers:correctCount,totalQuestions:answered,
+  accuracy:answered?Math.round(correctCount/answered*100):0,
+  missionAnswers,updatedAt:Date.now()
+ };
+ if(status==="Selesai") payload.completedAt=Date.now();
+ try{
+  await window.firebaseSaveProgress(attemptKey,payload);
+  $("cloudStatus").textContent="☁️ "+(status==="Selesai"?"Hasil akhir berhasil disimpan • 6/6 misi selesai":"Progres berhasil disimpan");
+  return true;
+ }catch(err){
+  $("cloudStatus").textContent="⚠️ Gagal menyimpan: "+(err.message||"periksa koneksi dan aturan Firebase");
+  console.error("Firebase save error",err);
+  return false;
+ }
+}
+async function saveFinalResult(){
+ const statusEl=$("finalSaveStatus");
+ const btn=$("finalSaveBtn");
+ if(btn){btn.disabled=true;btn.textContent="Menyimpan...";}
+ const ok=await persistProgress("Selesai");
+ if(statusEl) statusEl.textContent=ok?"✅ Hasil akhir tersimpan di Firebase (6 dari 6 misi).":"❌ Belum tersimpan. Periksa koneksi/aturan Firebase lalu tekan Simpan Hasil Akhir lagi.";
+ if(btn){btn.disabled=false;btn.textContent=ok?"✅ Tersimpan":"💾 Coba Simpan Lagi";}
+}
 function openTeacherLogin(){showModal(`<h2>🔐 Dashboard Guru</h2><p>Masuk menggunakan akun guru Firebase Authentication (Email/Password).</p><div class="field"><label>Email guru</label><input id="teacherEmail" type="email" autocomplete="username" placeholder="guru@sekolah.sch.id"></div><div class="field" style="margin-top:10px"><label>Kata sandi</label><input id="teacherPassword" type="password" autocomplete="current-password" placeholder="Kata sandi akun guru"></div><div id="teacherError" class="feedback bad"></div><div class="actions"><button class="btn primary" onclick="teacherLogin()">Masuk</button><button class="btn secondary" onclick="closeModal()">Tutup</button></div><p class="hint">Akun guru harus dibuat di Firebase Authentication dan emailnya harus diizinkan pada Realtime Database Rules.</p>`);}
 async function teacherLogin(){const email=$("teacherEmail").value.trim(),password=$("teacherPassword").value;if(!email||!password){$("teacherError").textContent="Isi email dan kata sandi."; $("teacherError").className="feedback bad";return;}try{await window.firebaseTeacherLogin(email,password);await renderTeacherDashboard();}catch(e){$("teacherError").textContent="Login gagal: "+(e.message||"periksa akun guru");$("teacherError").className="feedback bad";}}
 async function renderTeacherDashboard(){try{const rows=await window.firebaseGetResults();window.teacherRows=rows;showTeacherTable(rows);}catch(e){showModal(`<h2>Dashboard tidak dapat dibuka</h2><p>${escapeHTML(e.message||"Akses ditolak. Periksa aturan database dan akun guru.")}</p><div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup</button></div>`);}}
@@ -421,13 +454,13 @@ $("teacherDashBtn").onclick=openTeacherLogin;
 function printResult(){let reflection=$("reflection")?.value||"Belum diisi";let text=`HASIL PETUALANGAN PENJAGA KEARIFAN LOKAL\nPemain/Kelompok: ${player}\nMode: ${mode==="group"?"Kelompok":"Individual"}\nSkor: ${score}\nJawaban benar: ${correctCount}/6\nKoin: ${coins}\nRefleksi: ${reflection}`;let w=window.open("","_blank");if(!w){alert("Izinkan pop-up untuk mencetak hasil.");return;}w.document.write(`<pre style="font:16px system-ui;white-space:pre-wrap">${text.replace(/</g,"&lt;")}</pre>`);w.document.close();w.print();}
 async function restart(){closeModal();await enterGameDisplay();$("game").style.display="block";$("home").style.display="none";level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;try{await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){console.error("Tidak dapat membuat sesi permainan baru:",err);$("cloudStatus").textContent="⚠️ Sesi baru tidak dapat disimpan: "+(err.message||"periksa koneksi");}startLevel();await persistProgress("Berjalan");}
 async function backHome(){closeModal();stopGame();$("game").style.display="none";$("home").style.display="block";await exitGameDisplay();}
-window.enterGameDisplay=enterGameDisplay;window.exitGameDisplay=exitGameDisplay;window.closeModal=closeModal;window.showQuestion=showQuestion;window.chooseAnswer=chooseAnswer;window.completeLevel=completeLevel;window.printResult=printResult;window.restart=restart;window.backHome=backHome;window.teacherLogin=teacherLogin;window.filterTeacherRows=filterTeacherRows;window.refreshTeacherRows=refreshTeacherRows;window.exportTeacherCSV=exportTeacherCSV;window.teacherLogout=teacherLogout;
+window.saveFinalResult=saveFinalResult;window.enterGameDisplay=enterGameDisplay;window.exitGameDisplay=exitGameDisplay;window.closeModal=closeModal;window.showQuestion=showQuestion;window.chooseAnswer=chooseAnswer;window.completeLevel=completeLevel;window.printResult=printResult;window.restart=restart;window.backHome=backHome;window.teacherLogin=teacherLogin;window.filterTeacherRows=filterTeacherRows;window.refreshTeacherRows=refreshTeacherRows;window.exportTeacherCSV=exportTeacherCSV;window.teacherLogout=teacherLogout;
 </script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getDatabase, ref, push, set, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+import { getDatabase, ref, push, set, update, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7SdLtfLGZU-jh9MFt0_nDsJWc_gktXNk",
@@ -455,7 +488,7 @@ window.firebaseCreateAttempt = async()=>{
   const uid = await ensurePlayerAuth();
   const node = push(ref(db, `gameResults/${uid}`));
   const attemptId = node.key;
-  attemptOwners.set(attemptId, uid);
+  attemptOwners.set(attemptId, {uid, startedAt:Date.now()});
   // Create an initial record so a play attempt is visible even if the browser closes early.
   await set(node, {
     studentName: player,
@@ -474,18 +507,17 @@ window.firebaseCreateAttempt = async()=>{
 };
 
 window.firebaseSaveProgress = async(key, payload)=>{
-  const uid = attemptOwners.get(key);
-  if(!uid || !key) throw new Error("Identitas sesi permainan tidak ditemukan. Muat ulang halaman dan mulai permainan kembali.");
-  const path = `gameResults/${uid}/${key}`;
-  const current = await get(ref(db, path));
-  const old = current.exists() ? current.val() : {};
+  const owner = attemptOwners.get(key);
+  if(!owner || !owner.uid || !key) throw new Error("Identitas sesi permainan tidak ditemukan. Mulai permainan dari halaman awal.");
+  const path = `gameResults/${owner.uid}/${key}`;
+  // Gunakan update langsung: tidak perlu membaca node sebelumnya, sehingga aturan
+  // database yang hanya memberi izin write kepada pemain tetap dapat bekerja.
   const data = {
-    ...old,
     ...payload,
-    startedAt: old.startedAt || Date.now(),
+    startedAt: owner.startedAt,
     updatedAt: Date.now()
   };
-  await set(ref(db, path), data);
+  await update(ref(db, path), data);
   return true;
 };
 
