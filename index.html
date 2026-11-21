@@ -36,7 +36,7 @@ button,input{font:inherit}button{cursor:pointer;border:0}
 .progress{height:8px;background:#e4edf0;border-radius:99px;overflow:hidden;margin-top:10px}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#0f9d8a,#ffca58);transition:width .3s}
 .game-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;margin-top:14px}
 .stage-wrap{background:#153b4b;border-radius:20px;padding:10px;box-shadow:0 12px 28px #18324b20;min-width:0}
-canvas{display:block;width:100%;height:auto;aspect-ratio:16/7;border-radius:13px;background:#9edfc9;touch-action:none}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/7;border-radius:13px;background:#9edfc9;touch-action:none;image-rendering:auto;box-shadow:inset 0 0 0 2px #ffffff24}
 .stage-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 3px 1px;color:#dcecf0;font-size:12px}
 .touch-controls{display:none;gap:10px;align-items:center}.touch-controls button{width:48px;height:42px;border-radius:12px;background:#ffffff24;color:white;font-size:20px;font-weight:900;touch-action:none}
 .sidebar{display:flex;flex-direction:column;gap:12px}.sidecard{background:white;border:1px solid #dbe6eb;border-radius:16px;padding:15px}.sidecard h3{margin:0 0 8px;font-size:15px;color:var(--navy)}.sidecard p{font-size:13px;line-height:1.5;color:#5d7181;margin:0}.level-list{display:grid;gap:7px}.level-item{display:flex;gap:9px;align-items:center;font-size:12px;padding:7px 8px;border-radius:9px;background:#f3f7f8}.level-item.active{background:#e0f5ef;color:#087968;font-weight:800}.level-item.done{background:#fff4d8}
@@ -111,93 +111,150 @@ const missions=[
  {name:"Arsitek Nusantara",icon:"🏠",place:"Kampung Rumah Adat",theme:"#c5b4e8",desc:"Rancang rumah yang bijak terhadap lingkungan dan bencana.",lesson:"Rumah tradisional di berbagai daerah sering menyesuaikan bentuk bangunan dengan lingkungan setempat. Beberapa rumah menggunakan bahan yang relatif ringan, struktur rangka, sambungan yang lentur, atau bentuk panggung. Ciri tersebut dapat membantu menghadapi kondisi tertentu, termasuk guncangan, tetapi tidak semua rumah tradisional otomatis tahan gempa. Keamanan juga dipengaruhi rancangan, sambungan, fondasi, tanah, bahan, dan mutu pengerjaan.",question:"Mengapa beberapa rumah tradisional menggunakan bahan ringan dan sambungan yang dapat memberi kelenturan?",answers:["Agar struktur dapat lebih baik menyesuaikan gerakan atau guncangan tertentu","Agar rumah pasti tidak akan pernah rusak","Agar rumah selalu lebih tinggi dari semua bangunan","Agar tidak membutuhkan fondasi sama sekali"],correct:0,explain:"Benar! Bahan ringan dan sambungan yang dirancang baik dapat membantu struktur menghadapi gerakan tertentu. Namun keamanan tetap bergantung pada rancangan dan kualitas bangunan secara keseluruhan.",coins:5}
 ];
 const $=id=>document.getElementById(id);
-let mode="solo",player="Penjelajah",studentClass="",teamName="",teamNames="",level=0,score=0,coins=0,lives=3,answered=0,correctCount=0,levelDone=[],worldX=0,keys={},playerObj={},hazards=[],collectibles=[],platforms=[],gameRunning=false,animId=0,questionOpen=false,attemptKey=null,missionAnswers={};
+let mode="solo",player="Penjelajah",studentClass="",teamName="",teamNames="",level=0,score=0,coins=0,lives=3,answered=0,correctCount=0,levelDone=[],worldX=0,keys={},playerObj={},hazards=[],collectibles=[],platforms=[],gameRunning=false,animId=0,questionOpen=false,attemptKey=null,missionAnswers={},questionOrder={};
 const canvas=$("stage"),ctx=canvas.getContext("2d");
 function preview(){ $("missionPreview").innerHTML=missions.map((m,i)=>`<div class="mission"><div class="emoji">${m.icon}</div><div><b>${i+1}. ${m.name}</b><small>${m.place}</small></div></div>`).join(""); }
 preview();
 $("mode").addEventListener("change",()=>{const g=$("mode").value==="group";$("teamField").style.display=g?"block":"none";$("modeHint").textContent=g?"Mode kelompok: identitas siswa/koordinator dan kelas tetap dicatat. Isi juga nama kelompok; anggota boleh ditambahkan.":"Mode individual: nama siswa dan kelas dicatat sebagai identitas pemain.";});
 function showModal(html){$("modal").innerHTML=html;$("modalOverlay").style.display="flex";}
 function closeModal(){$("modalOverlay").style.display="none";}
-$("howBtn").onclick=()=>showModal(`<h2>📖 Cara Bermain</h2><p><b>1.</b> Pilih mode individual atau kelompok dan isi nama pemain/tim.</p><p><b>2.</b> Gunakan tombol panah atau A/D untuk berjalan. Tekan Spasi atau panah atas untuk melompat. Di HP, gunakan tombol ◀ ▶ ⬆.</p><p><b>3.</b> Hindari rintangan dan kumpulkan koin. Sampai di gerbang akhir untuk membuka materi singkat dan menjawab tantangan.</p><p><b>4.</b> Jawaban benar mendapat poin. Baca umpan balik agar semakin paham. Selesaikan enam misi untuk melihat evaluasi akhir.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Mengerti</button></div>`);
-$("startBtn").onclick=async()=>{mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi wilayah, kumpulkan koin, lalu jawab tantangan.";startLevel();await persistProgress("Berjalan");};
+$("howBtn").onclick=()=>showModal(`<h2>📖 Cara Bermain</h2><p><b>1.</b> Pilih mode individual atau kelompok dan isi nama pemain/tim.</p><p><b>2.</b> Gunakan tombol panah atau A/D untuk berjalan. Tekan Spasi atau panah atas untuk melompat. Di HP, gunakan tombol ◀ ▶ ⬆.</p><p><b>3.</b> Jelajahi dunia, hindari rintangan unik, kumpulkan koin, dan capai gerbang akhir untuk membuka materi singkat dan menjawab tantangan.</p><p><b>4.</b> Jawaban benar mendapat poin. Baca umpan balik agar semakin paham. Selesaikan enam misi untuk melihat evaluasi akhir.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Mengerti</button></div>`);
+$("startBtn").onclick=async()=>{mode=$("mode").value;player=$("player").value.trim();studentClass=$("className").value.trim();teamName=$("teamName").value.trim();teamNames=$("teamNames").value.trim();if(!player||!studentClass){showModal(`<h2>Identitas belum lengkap</h2><p>Isi nama siswa/koordinator dan kelas terlebih dahulu agar hasil permainan dapat dicatat dengan benar.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}if(mode==="group"&&!teamName){showModal(`<h2>Nama kelompok belum diisi</h2><p>Untuk mode kelompok, isi nama kelompok agar laporan guru mudah dikenali.</p><div class="actions"><button class="btn primary" onclick="closeModal()">Kembali</button></div>`);return;}level=0;score=0;coins=0;lives=3;answered=0;correctCount=0;levelDone=[];missionAnswers={};attemptKey=null;$("cloudStatus").textContent="☁️ Menghubungkan ke database untuk mencatat permainan...";try{if(!window.firebaseReady)throw new Error("Modul Firebase belum siap. Pastikan perangkat terhubung internet.");await window.firebaseReady;attemptKey=await window.firebaseCreateAttempt();}catch(err){showModal(`<h2>Belum dapat terhubung ke penyimpanan</h2><p>Game memerlukan koneksi internet untuk mencatat hasil ke dashboard guru.</p><p class="hint">${escapeHTML(err.message||"Periksa koneksi internet dan konfigurasi Firebase.")}</p><div class="actions"><button class="btn primary" onclick="closeModal()">Coba lagi nanti</button></div>`);$("cloudStatus").textContent="⚠️ Koneksi database belum tersedia; hasil belum dapat dicatat.";return;}$("cloudStatus").textContent="☁️ Terhubung — hasil permainan akan tersimpan otomatis."; $("home").style.display="none";$("game").style.display="block";$("playerLabel").textContent=(mode==="group"?"👥 ":"👤 ")+player+" • "+studentClass;$("sideDesc").textContent=mode==="group"?"Kelompok: "+teamName+". Diskusikan strategi dan bergiliran mengendalikan karakter.":"Jelajahi enam dunia berbeda, kumpulkan koin, dan taklukkan rintangan yang makin menantang.";startLevel();await persistProgress("Berjalan");};
 $("quitBtn").onclick=()=>{stopGame();$("game").style.display="none";$("home").style.display="block";};
 function updateHud(){ $("score").textContent=score;$("coins").textContent=coins;$("lives").textContent=lives;$("levelLabel").textContent=`Misi ${level+1} dari 6 • ${missions[level].place}`;$("progressBar").style.width=(level/6*100)+"%";$("sideTitle").textContent=`${missions[level].icon} ${missions[level].name}`;$("sideDesc").textContent=missions[level].desc;$("levelList").innerHTML=missions.map((m,i)=>`<div class="level-item ${i===level?"active":levelDone[i]?"done":""}"><span>${levelDone[i]?"✅":i+1+"."}</span><span>${m.icon} ${m.name}</span></div>`).join("");}
-function startLevel(){stopGame();worldX=0;playerObj={x:70,y:300,vx:0,vy:0,w:36,h:48,onGround:false,inv:0};let m=missions[level];platforms=[{x:0,y:370,w:330,h:50},{x:390,y:335,w:180,h:25},{x:625,y:300,w:170,h:25},{x:850,y:355,w:250,h:40},{x:1170,y:320,w:180,h:25},{x:1410,y:370,w:300,h:50}];hazards=[{x:300,y:345,w:35,h:25},{x:570,y:310,w:35,h:25},{x:810,y:330,w:35,h:25},{x:1110,y:330,w:40,h:25},{x:1370,y:345,w:35,h:25}];collectibles=[{x:210,y:320,taken:false},{x:470,y:285,taken:false},{x:700,y:250,taken:false},{x:950,y:310,taken:false},{x:1230,y:270,taken:false}];$("sideTitle").textContent=m.icon+" "+m.name;updateHud();gameRunning=true;lastTime=0;animId=requestAnimationFrame(loop);}
+const worldLength=2220;
+const biomeNames=["Permukaan Desa","Hutan Cerita","Gua Bawah Tanah","Laut Nusantara","Hutan Baduy","Kampung Rumah Adat"];
+function startLevel(){
+ stopGame();worldX=0;
+ playerObj={x:70,y:280,vx:0,vy:0,w:36,h:48,onGround:false,inv:0,swim:0};
+ // Setiap wilayah memiliki jalur, ketinggian lompatan, dan rintangan yang berbeda.
+ const layouts=[
+  [[0,370,300,60],[350,340,150,24],[550,300,140,24],[760,355,190,35],[1020,315,145,24],[1230,275,150,24],[1450,340,170,30],[1690,300,150,24],[1900,360,330,60]],
+  [[0,365,220,55],[270,315,130,22],[455,270,115,22],[625,325,160,26],[840,275,120,22],[1015,225,150,22],[1200,285,145,24],[1405,330,120,24],[1590,270,150,22],[1795,330,435,55]],
+  [[0,355,260,65],[300,310,135,22],[495,355,120,25],[675,285,130,22],[870,330,130,25],[1060,260,145,22],[1270,315,120,25],[1450,245,145,22],[1660,300,150,25],[1870,350,360,70]],
+  [[0,350,210,70],[255,315,125,20],[435,275,120,20],[610,330,150,22],[820,285,125,20],[1005,245,140,20],[1200,300,120,20],[1380,255,150,20],[1590,315,130,22],[1780,350,450,70]],
+  [[0,370,260,55],[305,330,135,22],[500,290,120,22],[680,345,145,25],[890,300,130,22],[1080,250,145,22],[1290,310,140,24],[1495,270,130,22],[1690,325,140,24],[1890,365,340,60]],
+  [[0,370,250,55],[295,325,135,22],[490,285,125,22],[680,345,145,25],[890,300,130,22],[1080,255,150,22],[1295,315,130,24],[1490,270,145,22],[1700,330,130,24],[1900,365,330,60]]
+ ];
+ platforms=layouts[level].map(a=>({x:a[0],y:a[1],w:a[2],h:a[3]}));
+ const hazardSets=[
+  [[315,344,38,25],[710,278,38,25],[970,330,45,25],[1660,275,42,25]],
+  [[225,338,42,26],[590,300,44,26],[790,300,42,26],[1170,260,44,26],[1645,245,45,26]],
+  [[260,320,44,35],[455,315,45,30],[630,305,42,32],[825,300,48,30],[1215,275,48,32],[1605,265,45,32]],
+  [[205,320,44,28],[390,280,45,28],[760,300,55,30],[960,255,45,28],[1350,265,55,30],[1740,320,48,28]],
+  [[260,338,44,25],[640,315,42,25],[850,270,45,25],[1250,280,46,25],[1650,295,48,25]],
+  [[250,340,40,25],[635,315,44,25],[850,270,42,25],[1250,285,46,25],[1650,300,44,25]]
+ ];
+ hazards=hazardSets[level].map((a,i)=>({x:a[0],y:a[1],w:a[2],h:a[3],phase:i*1.7,kind:level===2?"crystal":level===3?"jelly":level===4?"thorn":level===5?"debris":"hazard"}));
+ const coinXs=[170,390,570,735,940,1120,1340,1530,1760,1980];
+ collectibles=coinXs.map((x,i)=>({x,y:([285,270,245,295,230][i%5]),taken:false}));
+ // Obstacle and finish locations change by world.
+ finishX=2140;
+ $("sideTitle").textContent=missions[level].icon+" "+missions[level].name;updateHud();
+ gameRunning=true;lastTime=0;animId=requestAnimationFrame(loop);
+}
+let finishX=2140;
 function stopGame(){gameRunning=false;if(animId)cancelAnimationFrame(animId);}
 let lastTime=0;
 function loop(t){if(!gameRunning)return;let dt=Math.min((t-lastTime)/16.67||1,2);lastTime=t;update(dt);draw(t);animId=requestAnimationFrame(loop);}
-function update(dt){let p=playerObj;let speed=4.1;p.vx=0;if(keys.left)p.vx=-speed;if(keys.right)p.vx=speed;p.x+=p.vx*dt;p.x=Math.max(0,Math.min(1650,p.x));p.vy+=.55*dt;p.y+=p.vy*dt;p.onGround=false;for(let pl of platforms){if(p.x+p.w>pl.x&&p.x<pl.x+pl.w&&p.y+p.h>=pl.y&&p.y+p.h-p.vy*dt<=pl.y+8&&p.vy>=0){p.y=pl.y-p.h;p.vy=0;p.onGround=true;}}if(p.y>500){loseLife();return;}for(let h of hazards){if(hit(p,h)&&p.inv<=0){loseLife();return;}}if(p.inv>0)p.inv-=dt;for(let c of collectibles){if(!c.taken&&Math.abs((p.x+p.w/2)-c.x)<25&&Math.abs((p.y+p.h/2)-c.y)<35){c.taken=true;coins++;score+=10;updateHud();}}if(p.x>1580){stopGame();showLesson();} }
+function update(dt){
+ let p=playerObj;const underwater=level===3;let speed=underwater?3.45:4.25;
+ p.vx=0;if(keys.left)p.vx=-speed;if(keys.right)p.vx=speed;
+ p.x+=p.vx*dt;p.x=Math.max(0,Math.min(finishX+30,p.x));
+ p.vy+=(underwater?.25:.58)*dt;
+ if(underwater&&keys.jump&&p.vy>1)p.vy-=.10*dt;
+ p.y+=p.vy*dt;p.onGround=false;
+ for(let pl of platforms){if(p.x+p.w>pl.x&&p.x<pl.x+pl.w&&p.y+p.h>=pl.y&&p.y+p.h-p.vy*dt<=pl.y+10&&p.vy>=0){p.y=pl.y-p.h;p.vy=0;p.onGround=true;}}
+ if(p.y>490){loseLife();return;}
+ for(let h of hazards){let hy=h.y+(h.kind==="jelly"?Math.sin(performance.now()/330+h.phase)*12: h.kind==="crystal"?Math.sin(performance.now()/500+h.phase)*3:0);if(hit(p,{x:h.x,y:hy,w:h.w,h:h.h})&&p.inv<=0){loseLife();return;}}
+ if(p.inv>0)p.inv-=dt;
+ for(let c of collectibles){if(!c.taken&&Math.abs((p.x+p.w/2)-c.x)<25&&Math.abs((p.y+p.h/2)-c.y)<38){c.taken=true;coins++;score+=10;updateHud();}}
+ if(p.x>finishX){stopGame();showLesson();}
+}
 function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
-function loseLife(){lives--;updateHud();if(lives<=0){stopGame();showModal(`<h2>💪 Coba Lagi!</h2><p>Nyawa habis di misi ini. Tidak apa-apa, penjaga hebat terus belajar dari percobaan.</p><div class="actions"><button class="btn primary" onclick="lives=3;closeModal();startLevel()">Ulangi Misi</button><button class="btn secondary" onclick="closeModal();$('game').style.display='none';$('home').style.display='block'">Kembali ke awal</button></div>`);}else{playerObj.x=Math.max(30,playerObj.x-100);playerObj.y=260;playerObj.vy=0;playerObj.inv=100;}}
+function loseLife(){lives--;updateHud();if(lives<=0){stopGame();showModal(`<h2>💪 Coba Lagi!</h2><p>Nyawa habis di wilayah ini. Pelajari jalurnya, atur waktu lompatan, lalu coba kembali.</p><div class="actions"><button class="btn primary" onclick="lives=3;closeModal();startLevel()">Ulangi Misi</button><button class="btn secondary" onclick="closeModal();$('game').style.display='none';$('home').style.display='block'">Kembali ke awal</button></div>`);}else{playerObj.x=Math.max(30,playerObj.x-150);playerObj.y=250;playerObj.vy=0;playerObj.inv=105;}}
 function draw(t){
- const m=missions[level],cam=Math.max(0,Math.min(730,playerObj.x-220)),time=t/1000;
- ctx.save();ctx.clearRect(0,0,960,420);
- // Langit sinematik dengan cahaya lembut
- let sky=ctx.createLinearGradient(0,0,0,420);sky.addColorStop(0,"#83c9df");sky.addColorStop(.58,m.theme);sky.addColorStop(1,"#e9f3d1");ctx.fillStyle=sky;ctx.fillRect(0,0,960,420);
- // Matahari dan cahaya
- ctx.save();ctx.globalAlpha=.22;let glow=ctx.createRadialGradient(780,75,10,780,75,115);glow.addColorStop(0,"#fff8bd");glow.addColorStop(1,"#fff8bd00");ctx.fillStyle=glow;ctx.fillRect(650,0,260,200);ctx.restore();ctx.fillStyle="#ffe89a";ctx.beginPath();ctx.arc(790,72,31,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff4c8";ctx.beginPath();ctx.arc(780,62,8,0,Math.PI*2);ctx.fill();
- // awan berlapis bergerak
- function cloud(x,y,scale){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.fillStyle="#ffffffc9";ctx.beginPath();ctx.arc(0,8,18,0,Math.PI*2);ctx.arc(22,0,24,0,Math.PI*2);ctx.arc(48,10,18,0,Math.PI*2);ctx.arc(27,16,23,0,Math.PI*2);ctx.fill();ctx.restore();}
- for(let i=0;i<5;i++){let x=((i*245-time*10-cam*.12)%1180+1180)%1180-80;cloud(x,58+(i%3)*33,.75+(i%2)*.22);}
- // pegunungan jauh dan bukit parallax
- function ridge(color,y,shift,amp){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,420);for(let x=0;x<=1000;x+=25){let yy=y+Math.sin((x+shift)/95)*amp+Math.sin((x+shift)/43)*amp*.24;ctx.lineTo(x,yy);}ctx.lineTo(1000,420);ctx.closePath();ctx.fill();}
- ridge("#77bba0",235,cam*.18,32);ridge("#4d987d",285,cam*.32,23);
- // dekorasi wilayah yang bergerak pelan
- ctx.save();ctx.translate(-cam*.48,0);
- for(let i=0;i<10;i++){let x=i*145+25;drawTree(x,285+(i%3)*8,.78+(i%3)*.1,i);}
- ctx.restore();
- // ornamen khusus wilayah di kejauhan
- ctx.save();ctx.globalAlpha=.28;ctx.translate(-cam*.25,0);
- if(level===2){for(let x=60;x<1900;x+=115){ctx.fillStyle="#e8fff7";ctx.fillRect(x,275,78,7);ctx.fillRect(x+10,258,5,17);}}
- if(level===3){for(let x=90;x<1900;x+=190){ctx.fillStyle="#8b3f42";ctx.fillRect(x,245,7,38);ctx.fillRect(x+20,245,7,38);ctx.fillStyle="#f8e6d2";ctx.fillRect(x+5,250,17,8);}}
- if(level===4){for(let x=90;x<1900;x+=160){ctx.fillStyle="#275e45";ctx.beginPath();ctx.arc(x,260,26,0,Math.PI*2);ctx.fill();}}
- if(level===5){for(let x=90;x<1900;x+=210){ctx.fillStyle="#8b6048";ctx.beginPath();ctx.moveTo(x,285);ctx.lineTo(x+38,225);ctx.lineTo(x+76,285);ctx.fill();ctx.fillRect(x+8,280,60,6);}}
- ctx.restore();
- // tanah dan platform dengan tekstur
+ const m=missions[level],time=t/1000,cam=Math.max(0,Math.min(finishX-700,playerObj.x-300));
+ ctx.clearRect(0,0,960,420);ctx.save();
+ const palettes=[
+  ["#78c8e7","#e7f6d4","#5b9d5d","#32734d"],
+  ["#f6c879","#f9e6b0","#6d9c56","#315d43"],
+  ["#182f53","#42678a","#53677b","#26394d"],
+  ["#087aab","#35b5c5","#147c91","#07536d"],
+  ["#a5d7a4","#d8e9ba","#447e50","#235b3c"],
+  ["#9ac6e2","#f0e3c4","#9c7552","#684b3d"]
+ ];
+ let pal=palettes[level],sky=ctx.createLinearGradient(0,0,0,420);sky.addColorStop(0,pal[0]);sky.addColorStop(1,pal[1]);ctx.fillStyle=sky;ctx.fillRect(0,0,960,420);
+ // Ambient particles and biome-specific scenery layers.
+ if(level===0){
+  ctx.fillStyle="#ffe79a";ctx.beginPath();ctx.arc(790,72,34,0,Math.PI*2);ctx.fill();
+  drawClouds(time,cam);drawHills(cam,"#a4d6a5","#6da879");
+  ctx.save();ctx.translate(-cam*.35,0);for(let i=0;i<12;i++){drawTree(i*190+40,290+(i%3)*9,.8+(i%3)*.12,i);}for(let i=0;i<5;i++)drawHouse(120+i*410,300);ctx.restore();
+ }else if(level===1){
+  ctx.fillStyle="#fff0b6";ctx.beginPath();ctx.arc(760,76,29,0,Math.PI*2);ctx.fill();drawHills(cam,"#9dbd69","#507b4a");ctx.save();ctx.translate(-cam*.38,0);for(let i=0;i<15;i++)drawJungleTree(i*155+25,305+(i%4)*7,.8+(i%3)*.13,i);ctx.restore();
+  ctx.fillStyle="#f5df9d";ctx.font="bold 14px system-ui";ctx.fillText("HUTAN CERITA • JEJAK TRADISI",24,34);
+ }else if(level===2){
+  ctx.fillStyle="#142c4b";ctx.fillRect(0,0,960,420);drawCave(cam,time);
+  ctx.fillStyle="#8bd7e9";ctx.font="bold 14px system-ui";ctx.fillText("LORONG BAWAH TANAH • GUA AIR",24,34);
+ }else if(level===3){
+  ctx.fillStyle="#087eac";ctx.fillRect(0,0,960,420);drawSea(cam,time);
+  ctx.fillStyle="#d7fbff";ctx.font="bold 14px system-ui";ctx.fillText("LAUT NUSANTARA • ARUS DAN TERUMBU",24,34);
+ }else if(level===4){
+  drawForest(cam,time);
+  ctx.fillStyle="#f0f8d6";ctx.font="bold 14px system-ui";ctx.fillText("HUTAN ADAT • PENJAGA KESEIMBANGAN",24,34);
+ }else{
+  drawVillageArchitecture(cam,time);
+  ctx.fillStyle="#fff8e8";ctx.font="bold 14px system-ui";ctx.fillText("KAMPUNG RUMAH ADAT • RANCANGAN BIJAK",24,34);
+ }
+ // Parallax ground and unique platforms.
  ctx.save();ctx.translate(-cam,0);
- for(let pl of platforms){let gg=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);gg.addColorStop(0,"#9b704b");gg.addColorStop(1,"#654936");ctx.fillStyle=gg;roundRect(pl.x,pl.y,pl.w,pl.h,7);ctx.fill();ctx.fillStyle="#55a96c";roundRect(pl.x,pl.y-3,pl.w,12,5);ctx.fill();ctx.fillStyle="#b4d889";for(let x=pl.x+8;x<pl.x+pl.w-5;x+=24){ctx.beginPath();ctx.moveTo(x,pl.y+1);ctx.lineTo(x+4,pl.y-7-(x%3));ctx.lineTo(x+8,pl.y+2);ctx.fill();}ctx.fillStyle="#ffffff20";for(let x=pl.x+12;x<pl.x+pl.w-10;x+=39){ctx.fillRect(x,pl.y+22,15,3);}}
- // rintangan semak berduri animatif
- for(let h of hazards){let sway=Math.sin(time*4+h.x)*2;ctx.fillStyle="#76513b";ctx.beginPath();ctx.ellipse(h.x+h.w/2,h.y+h.h-3,h.w*.62,7,0,0,Math.PI*2);ctx.fill();for(let k=0;k<4;k++){let xx=h.x+4+k*9;ctx.fillStyle=k%2?"#277b53":"#32945f";ctx.beginPath();ctx.moveTo(xx,h.y+h.h-4);ctx.quadraticCurveTo(xx-3+sway,h.y+8,xx+5,h.y+3+(k%2)*5);ctx.quadraticCurveTo(xx+9,h.y+17,xx+10,h.y+h.h-4);ctx.fill();}ctx.fillStyle="#f6d5a1";ctx.beginPath();ctx.arc(h.x+12,h.y+16,2,0,Math.PI*2);ctx.arc(h.x+24,h.y+17,2,0,Math.PI*2);ctx.fill();}
- // koin dengan kilau
- for(let c of collectibles){if(!c.taken){let bob=Math.sin(time*4+c.x)*4;ctx.save();ctx.translate(c.x,c.y+bob);ctx.scale(.75+Math.abs(Math.sin(time*3+c.x))*.25,1);ctx.fillStyle="#e9a92e";ctx.beginPath();ctx.arc(0,2,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#ffdc68";ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff4b2";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#b77b1d";ctx.font="bold 13px Georgia";ctx.textAlign="center";ctx.fillText("★",0,5);ctx.restore();}}
- // gerbang tujuan dengan bendera berkibar
- ctx.fillStyle="#75533d";roundRect(1610,274,12,98,4);ctx.fill();ctx.fillStyle="#f7f1d8";ctx.beginPath();ctx.moveTo(1622,278);ctx.quadraticCurveTo(1646,286+Math.sin(time*5)*4,1676,282);ctx.lineTo(1676,315);ctx.quadraticCurveTo(1648,308+Math.sin(time*5)*4,1622,315);ctx.closePath();ctx.fill();ctx.fillStyle="#15977e";ctx.font="bold 12px system-ui";ctx.fillText("FINISH",1627,301);
- // karakter petualang: badan, tas, tangan dan kaki beranimasi
- let p=playerObj,walking=Math.abs(p.vx)>.1&&p.onGround,step=walking?Math.sin(time*15)*6:0,bob=walking?Math.abs(Math.sin(time*15))*2:0;
- if(p.inv<=0||Math.floor(t/85)%2===0){ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2+bob);if(p.vx<0)ctx.scale(-1,1);
- // bayangan
- ctx.fillStyle="#173b3b35";ctx.beginPath();ctx.ellipse(0,25,21,5,0,0,Math.PI*2);ctx.fill();
- // kaki dan sepatu
- ctx.strokeStyle="#28445b";ctx.lineWidth=7;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,11);ctx.lineTo(-9+step,22);ctx.moveTo(7,11);ctx.lineTo(9-step,22);ctx.stroke();ctx.fillStyle="#5c392d";roundRect(-17+step,19,15,7,3);ctx.fill();roundRect(3-step,19,15,7,3);ctx.fill();
- // tas ransel
- ctx.fillStyle="#b66a36";roundRect(-18,-9,12,23,5);ctx.fill();ctx.fillStyle="#e39a4d";roundRect(-17,-5,10,7,3);ctx.fill();
- // badan dan baju
- ctx.fillStyle="#1d6380";roundRect(-12,-13,24,27,7);ctx.fill();ctx.fillStyle="#f2c34f";ctx.fillRect(-2,-11,4,22);ctx.fillStyle="#eaf4df";ctx.fillRect(-10,-4,20,3);
- // lengan
- ctx.strokeStyle="#e9b98e";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-10,-8);ctx.lineTo(-16,-1+step*.35);ctx.moveTo(10,-8);ctx.lineTo(16,-1-step*.35);ctx.stroke();
- // leher dan wajah
- ctx.fillStyle="#d99c70";roundRect(-5,-22,10,10,3);ctx.fill();ctx.fillStyle="#efc39c";ctx.beginPath();ctx.arc(0,-25,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#263d4a";ctx.beginPath();ctx.arc(4,-27,1.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#9d5d4a";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(4,-22,3,.2,1.4);ctx.stroke();
- // topi petualang
- ctx.fillStyle="#e8b84e";ctx.beginPath();ctx.ellipse(0,-35,15,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#c88a35";ctx.beginPath();ctx.arc(0,-37,10,Math.PI,Math.PI*2);ctx.fill();ctx.fillStyle="#f7d878";ctx.fillRect(-10,-36,20,3);
- // emblem daun di dada
- ctx.fillStyle="#8bd58b";ctx.beginPath();ctx.ellipse(5,-3,3,5,-.7,0,Math.PI*2);ctx.fill();ctx.restore();}
+ for(let i=0;i<platforms.length;i++){
+  let pl=platforms[i],top=level===2?"#8c9bab":level===3?"#58d4d0":level===5?"#bd9368":level===1||level===4?"#679b50":"#70b95d";
+  let base=level===2?"#34465b":level===3?"#116b83":level===5?"#79543e":"#76543b";
+  let grad=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);grad.addColorStop(0,top);grad.addColorStop(1,base);ctx.fillStyle=grad;roundRect(pl.x,pl.y,pl.w,pl.h,level===2?4:8);ctx.fill();
+  ctx.fillStyle=level===3?"#b8f5e8":level===2?"#c7d4dc":level===5?"#e3c49a":"#b8db83";ctx.fillRect(pl.x+3,pl.y+2,Math.max(0,pl.w-6),4);
+  ctx.fillStyle="#ffffff22";for(let xx=pl.x+12;xx<pl.x+pl.w-8;xx+=32)ctx.fillRect(xx,pl.y+pl.h*.55,13,3);
+ }
+ // Different animated hazards by biome.
+ for(let h of hazards){let bob=Math.sin(time*3+h.phase)*4;ctx.save();ctx.translate(h.x,h.y+bob);
+  if(h.kind==="jelly"){ctx.fillStyle="#f49ad7";ctx.beginPath();ctx.arc(h.w/2,10,h.w*.43,Math.PI,0);ctx.lineTo(h.w*.82,24);ctx.lineTo(h.w*.62,18);ctx.lineTo(h.w*.48,27);ctx.lineTo(h.w*.3,18);ctx.lineTo(h.w*.12,25);ctx.closePath();ctx.fill();ctx.fillStyle="#fff";ctx.fillRect(12,9,4,4);ctx.fillRect(25,9,4,4);}
+  else if(h.kind==="crystal"){ctx.fillStyle="#5ee0db";ctx.beginPath();ctx.moveTo(0,h.h);ctx.lineTo(8,4);ctx.lineTo(18,0);ctx.lineTo(30,9);ctx.lineTo(h.w,h.h);ctx.closePath();ctx.fill();ctx.fillStyle="#c7ffff";ctx.fillRect(12,10,4,12);}
+  else if(h.kind==="debris"){ctx.fillStyle="#8e6550";ctx.beginPath();ctx.moveTo(0,h.h);ctx.lineTo(7,3);ctx.lineTo(19,9);ctx.lineTo(29,0);ctx.lineTo(h.w,h.h);ctx.closePath();ctx.fill();}
+  else{ctx.fillStyle="#315e3c";ctx.beginPath();ctx.moveTo(0,h.h);ctx.lineTo(8,5);ctx.lineTo(17,h.h);ctx.lineTo(28,0);ctx.lineTo(h.w,h.h);ctx.fill();ctx.fillStyle="#a8d58b";ctx.fillRect(10,13,4,3);}
+  ctx.restore();
+ }
+ // Collectible knowledge tokens.
+ for(let c of collectibles){if(!c.taken){let bob=Math.sin(time*4+c.x)*5;ctx.save();ctx.translate(c.x,c.y+bob);ctx.fillStyle=level===3?"#9df6ee":"#ffd45f";ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff8c9";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#7a541e";ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.fillText(level===3?"✦":"★",0,4);ctx.restore();}}
+ // Goal gate with themed marker.
+ ctx.fillStyle=level===2?"#91a9bd":"#73513c";roundRect(finishX+25,260,14,112,4);ctx.fill();ctx.fillStyle=level===3?"#f3f9fa":"#fff1ce";ctx.beginPath();ctx.moveTo(finishX+39,266);ctx.lineTo(finishX+92,279+Math.sin(time*5)*4);ctx.lineTo(finishX+39,312);ctx.closePath();ctx.fill();ctx.fillStyle="#164a54";ctx.font="bold 11px system-ui";ctx.fillText("MISI",finishX+48,292);
  ctx.restore();
- // HUD mini dalam arena
- ctx.fillStyle="#143d4cdd";roundRect(18,72,150,33,10);ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 12px system-ui";ctx.fillText("JARAK PETUALANGAN",29,93);ctx.fillStyle="#ffffff55";roundRect(177,82,160,10,5);ctx.fill();ctx.fillStyle="#ffce5b";roundRect(177,82,Math.max(0,160*Math.min(1,playerObj.x/1620)),10,5);ctx.fill();
- ctx.fillStyle="#143d4c";ctx.font="bold 17px system-ui";ctx.fillText(m.icon+"  "+m.place,22,32);ctx.font="12px system-ui";ctx.fillText("Hindari semak berduri • Kumpulkan koin • Capai gerbang",22,52);
+ // Main character, animated walk / swim pose.
+ drawExplorer(playerObj,time,cam,level);
+ // Screen HUD.
+ ctx.fillStyle="#102b45d9";roundRect(18,48,205,31,9);ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 12px system-ui";ctx.fillText("PROGRES PETUALANGAN",29,68);ctx.fillStyle="#ffffff55";roundRect(232,58,155,10,5);ctx.fill();ctx.fillStyle="#ffcf5b";roundRect(232,58,155*Math.min(1,playerObj.x/finishX),10,5);ctx.fill();
+ ctx.fillStyle="#ffffffcc";ctx.font="11px system-ui";ctx.fillText(level===3?"Tekan lompat untuk berenang naik • Hindari ubur-ubur":level===2?"Lompati kristal dan celah lorong":level===1||level===4?"Lompati akar, duri, dan jurang hutan":"Lompati rintangan dan capai gerbang",20,98);
  ctx.restore();
 }
+function drawClouds(t,cam){for(let i=0;i<5;i++){let x=((i*250-t*9-cam*.12)%1200+1200)%1200-100,y=70+(i%3)*35;ctx.fillStyle="#ffffffc9";ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.arc(x+22,y-8,23,0,7);ctx.arc(x+48,y,18,0,7);ctx.fill();}}
+function drawHills(cam,a,b){ctx.fillStyle=a;ctx.beginPath();ctx.moveTo(0,330);for(let x=0;x<1000;x+=20)ctx.lineTo(x,235+Math.sin((x+cam*.18)/100)*30);ctx.lineTo(1000,420);ctx.lineTo(0,420);ctx.fill();ctx.fillStyle=b;ctx.beginPath();ctx.moveTo(0,360);for(let x=0;x<1000;x+=20)ctx.lineTo(x,285+Math.sin((x+cam*.3)/75)*22);ctx.lineTo(1000,420);ctx.lineTo(0,420);ctx.fill();}
+function drawHouse(x,y){ctx.fillStyle="#8c5b3b";ctx.fillRect(x,y-38,72,42);ctx.fillStyle="#b75f45";ctx.beginPath();ctx.moveTo(x-8,y-38);ctx.lineTo(x+35,y-76);ctx.lineTo(x+80,y-38);ctx.fill();ctx.fillStyle="#f4d59b";ctx.fillRect(x+12,y-26,15,30);ctx.fillRect(x+46,y-25,14,14);}
+function drawJungleTree(x,y,s,i){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle="#624832";ctx.fillRect(-7,-65,14,65);let colors=["#225b3e","#317447","#3f8550"];for(let j=0;j<4;j++){ctx.fillStyle=colors[(i+j)%3];ctx.beginPath();ctx.ellipse((j%2?12:-12),-60-j*15,32,29,0,0,7);ctx.fill();}ctx.restore();}
+function drawCave(cam,t){ctx.fillStyle="#243c58";ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(960,0);ctx.lineTo(960,100);for(let x=960;x>=0;x-=30)ctx.lineTo(x,85+Math.sin((x+cam*.3)/75)*24);ctx.closePath();ctx.fill();ctx.fillStyle="#182c45";ctx.beginPath();ctx.moveTo(0,420);ctx.lineTo(0,310);for(let x=0;x<=960;x+=30)ctx.lineTo(x,320+Math.sin((x+cam*.25)/80)*20);ctx.lineTo(960,420);ctx.fill();for(let i=0;i<9;i++){let x=(i*137-cam*.45%1100+1100)%1100-40;ctx.fillStyle=i%2?"#5ac6d2":"#80e1df";ctx.beginPath();ctx.moveTo(x,95);ctx.lineTo(x+12,125+Math.sin(t*2+i)*5);ctx.lineTo(x+25,95);ctx.fill();}ctx.fillStyle="#3a6c86";ctx.fillRect(0,385,960,35);ctx.fillStyle="#74d5d1";for(let i=0;i<20;i++){let x=(i*55-t*22)%1000;ctx.beginPath();ctx.arc(x,390+Math.sin(t*2+i)*4,2,0,7);ctx.fill();}}
+function drawSea(cam,t){let g=ctx.createLinearGradient(0,0,0,420);g.addColorStop(0,"#0877a5");g.addColorStop(1,"#03415f");ctx.fillStyle=g;ctx.fillRect(0,0,960,420);ctx.fillStyle="#d8fbff";ctx.globalAlpha=.22;for(let i=0;i<8;i++){let x=(i*150-cam*.2%1100+1100)%1100;ctx.beginPath();ctx.arc(x,70+(i%3)*55,35,0,7);ctx.fill();}ctx.globalAlpha=1;for(let i=0;i<16;i++){let x=(i*75-t*16)%1000,y=100+(i*47)%250;ctx.strokeStyle="#b8f4f1aa";ctx.beginPath();ctx.arc(x,y,3+(i%3),0,7);ctx.stroke();}ctx.fillStyle="#b7dfb4";ctx.beginPath();ctx.moveTo(0,400);for(let x=0;x<=960;x+=25)ctx.lineTo(x,390+Math.sin(x/45+t)*8);ctx.lineTo(960,420);ctx.lineTo(0,420);ctx.fill();for(let i=0;i<10;i++){let x=(i*110-cam*.55%1100+1100)%1100;ctx.fillStyle=["#f28d83","#f2c66d","#76d7c5"][i%3];ctx.beginPath();ctx.ellipse(x,360-(i%3)*18,12,27,Math.sin(t+i)*.2,0,7);ctx.fill();}}
+function drawForest(cam,t){let g=ctx.createLinearGradient(0,0,0,420);g.addColorStop(0,"#a8d5a1");g.addColorStop(1,"#dce8b8");ctx.fillStyle=g;ctx.fillRect(0,0,960,420);for(let i=0;i<13;i++){let x=(i*100-cam*.4%1100+1100)%1100-40;drawJungleTree(x,310+(i%3)*12,1.05+(i%3)*.12,i);}ctx.fillStyle="#e5c98e";ctx.beginPath();ctx.moveTo(0,370);ctx.quadraticCurveTo(300,320,500,375);ctx.quadraticCurveTo(750,420,960,355);ctx.lineTo(960,420);ctx.lineTo(0,420);ctx.fill();for(let i=0;i<20;i++){let x=(i*52-t*7)%1000;ctx.fillStyle="#f3edb4";ctx.beginPath();ctx.arc(x,140+(i*37)%180,2,0,7);ctx.fill();}}
+function drawVillageArchitecture(cam,t){let g=ctx.createLinearGradient(0,0,0,420);g.addColorStop(0,"#8dbbd8");g.addColorStop(1,"#f2dfb9");ctx.fillStyle=g;ctx.fillRect(0,0,960,420);ctx.fillStyle="#e8c994";ctx.fillRect(0,350,960,70);ctx.save();ctx.translate(-cam*.32,0);for(let i=0;i<6;i++){let x=i*220+50;ctx.fillStyle="#8a6047";ctx.fillRect(x,250,115,105);ctx.fillStyle="#b77b4f";ctx.beginPath();ctx.moveTo(x-18,250);ctx.lineTo(x+58,175);ctx.lineTo(x+135,250);ctx.fill();ctx.fillStyle="#f3d5a2";ctx.fillRect(x+17,280,26,75);ctx.fillRect(x+70,275,28,24);ctx.fillStyle="#5c4637";ctx.fillRect(x+51,255,12,100);}ctx.restore();ctx.fillStyle="#7b9f61";for(let i=0;i<12;i++){let x=i*90;ctx.beginPath();ctx.arc(x,348,16,0,7);ctx.fill();}}
+function drawExplorer(p,t,cam,biome){let walking=Math.abs(p.vx)>.1&&p.onGround,step=walking?Math.sin(t/1000*15)*6:0,bob=walking?Math.abs(Math.sin(t/1000*15))*2:0;ctx.save();ctx.translate(p.x-cam+p.w/2,p.y+p.h/2+bob);if(p.vx<0)ctx.scale(-1,1);ctx.fillStyle="#173b3b55";ctx.beginPath();ctx.ellipse(0,25,20,5,0,0,7);ctx.fill();if(biome===3){ctx.strokeStyle="#f2c58e";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-9,5);ctx.lineTo(-19,14+Math.sin(t/170)*3);ctx.moveTo(9,5);ctx.lineTo(19,14-Math.sin(t/170)*3);ctx.stroke();}ctx.strokeStyle="#28445b";ctx.lineWidth=7;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,11);ctx.lineTo(-9+step,22);ctx.moveTo(7,11);ctx.lineTo(9-step,22);ctx.stroke();ctx.fillStyle="#5c392d";roundRect(-17+step,19,15,7,3);ctx.fill();roundRect(3-step,19,15,7,3);ctx.fill();ctx.fillStyle="#b66a36";roundRect(-18,-9,12,23,5);ctx.fill();ctx.fillStyle="#1d6380";roundRect(-12,-13,24,27,7);ctx.fill();ctx.fillStyle="#f2c34f";ctx.fillRect(-2,-11,4,22);ctx.strokeStyle="#e9b98e";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-10,-8);ctx.lineTo(-16,-1+step*.35);ctx.moveTo(10,-8);ctx.lineTo(16,-1-step*.35);ctx.stroke();ctx.fillStyle="#d99c70";roundRect(-5,-22,10,10,3);ctx.fill();ctx.fillStyle="#efc39c";ctx.beginPath();ctx.arc(0,-25,12,0,7);ctx.fill();ctx.fillStyle="#263d4a";ctx.beginPath();ctx.arc(4,-27,1.5,0,7);ctx.fill();ctx.fillStyle="#e8b84e";ctx.beginPath();ctx.ellipse(0,-35,15,5,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(0,-37,10,Math.PI,Math.PI*2);ctx.fill();ctx.restore();}
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function drawTree(x,y,s,variant){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle="#80583e";roundRect(-6,-38,12,42,4);ctx.fill();let greens=["#267b59","#328a61","#4b9a68"];ctx.fillStyle=greens[variant%3];for(let a=0;a<3;a++){ctx.beginPath();ctx.arc((a-1)*15,-48-(a%2)*9,22,0,Math.PI*2);ctx.fill();}ctx.fillStyle="#a8d78a";ctx.beginPath();ctx.arc(-12,-60,6,0,Math.PI*2);ctx.fill();ctx.restore();}
 
-function jump(){if(playerObj.onGround&&gameRunning){playerObj.vy=-11.8;playerObj.onGround=false;}}
+function jump(){if(!gameRunning)return;if(level===3){playerObj.vy=-6.2;playerObj.onGround=false;}else if(playerObj.onGround){playerObj.vy=-12.3;playerObj.onGround=false;}}
 function bindHold(id,key){let el=$(id);el.addEventListener("pointerdown",e=>{e.preventDefault();keys[key]=true;el.setPointerCapture(e.pointerId)});["pointerup","pointercancel","lostpointercapture"].forEach(ev=>el.addEventListener(ev,e=>{keys[key]=false;}));}
 bindHold("leftBtn","left");bindHold("rightBtn","right");$("jumpBtn").addEventListener("pointerdown",e=>{e.preventDefault();jump()});
 document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key))e.preventDefault();if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=true;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=true;if(e.key===" "||e.key==="ArrowUp"||e.key.toLowerCase()==="w")jump();});
 document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=false;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=false;});
 function showLesson(){let m=missions[level];showModal(`<span class="lesson-tag">📚 Materi misi ${level+1}</span><h2>${m.icon} ${m.name}</h2><p>${m.desc}</p><div class="factbox">${m.lesson}</div><p><b>Siap menguji pemahamanmu?</b> Jawab satu tantangan berikut untuk menyelesaikan misi.</p><div class="actions"><button class="btn primary" onclick="showQuestion()">Mulai Tantangan ➜</button></div>`);}
-function showQuestion(){let m=missions[level];questionOpen=true;showModal(`<span class="lesson-tag">🧠 Tantangan pengetahuan</span><h2>${m.icon} ${m.name}</h2><div class="question">${m.question}</div><div class="answers">${m.answers.map((a,i)=>`<button class="answer" id="ans${i}" onclick="chooseAnswer(${i})">${String.fromCharCode(65+i)}. ${a}</button>`).join("")}</div><div class="feedback" id="feedback"></div><div class="actions" id="nextArea"></div>`);}
-async function chooseAnswer(i){if(!questionOpen)return;questionOpen=false;let m=missions[level],good=i===m.correct;answered++;missionAnswers[level]={selected:i,correct:good,question:m.question};if(good){correctCount++;score+=100;}else{score=Math.max(0,score-10);}m.answers.forEach((a,j)=>{let b=$("ans"+j);b.disabled=true;if(j===m.correct)b.classList.add("correct");else if(j===i)b.classList.add("wrong");});let fb=$("feedback");fb.className="feedback "+(good?"good":"bad");fb.innerHTML=(good?"<b>🌟 Hebat! Jawabanmu benar.</b> ":"<b>💡 Belum tepat. Yuk, pelajari lagi.</b> ")+m.explain+`<br><b>${good?"+100":"-10"} poin</b>`;$("nextArea").innerHTML=`<button class="btn primary" onclick="completeLevel()">Lanjutkan ➜</button>`;updateHud();await persistProgress("Berjalan");}
+function showQuestion(){let m=missions[level];questionOpen=true;const order=m.answers.map((_,i)=>i);for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}questionOrder[level]=order;showModal(`<span class="lesson-tag">🧠 Tantangan pengetahuan</span><h2>${m.icon} ${m.name}</h2><div class="question">${m.question}</div><div class="answers">${order.map((originalIndex,displayIndex)=>`<button class="answer" id="ans${displayIndex}" onclick="chooseAnswer(${displayIndex})">${String.fromCharCode(65+displayIndex)}. ${m.answers[originalIndex]}</button>`).join("")}</div><div class="feedback" id="feedback"></div><div class="actions" id="nextArea"></div>`);}
+async function chooseAnswer(displayIndex){if(!questionOpen)return;questionOpen=false;let m=missions[level],order=questionOrder[level]||m.answers.map((_,i)=>i),originalIndex=order[displayIndex],good=originalIndex===m.correct;answered++;missionAnswers[level]={selected:displayIndex,selectedAnswer:m.answers[originalIndex],correctAnswer:m.answers[m.correct],correct:good,question:m.question};if(good){correctCount++;score+=100;}else{score=Math.max(0,score-10);}order.forEach((original,j)=>{let b=$("ans"+j);if(!b)return;b.disabled=true;if(original===m.correct)b.classList.add("correct");else if(j===displayIndex)b.classList.add("wrong");});let fb=$("feedback");fb.className="feedback "+(good?"good":"bad");fb.innerHTML=(good?"<b>🌟 Hebat! Jawabanmu benar.</b> ":"<b>💡 Belum tepat. Yuk, pelajari lagi.</b> ")+m.explain+`<br><b>${good?"+100":"-10"} poin</b>`;$("nextArea").innerHTML=`<button class="btn primary" onclick="completeLevel()">Lanjutkan ➜</button>`;updateHud();await persistProgress("Berjalan");}
 async function completeLevel(){levelDone[level]=true;score+=25;await persistProgress(level===5?"Selesai":"Berjalan");if(level<5){level++;closeModal();startLevel();await persistProgress("Berjalan");}else{closeModal();await finishGame();}}
 async function finishGame(){stopGame();await persistProgress("Selesai");$("progressBar").style.width="100%";$("levelLabel").textContent="Semua misi selesai!";let pct=Math.round(correctCount/6*100),rank=pct>=85?"Pahlawan Kearifan 🌟":pct>=65?"Penjaga Nusantara 🏅":"Penjelajah Tangguh 🌱";showModal(`<div class="eyebrow">Petualangan selesai</div><h2>🎉 Selamat, ${player}!</h2><p>Kamu telah menyelesaikan enam wilayah dan belajar tentang cara menjaga warisan budaya serta alam Nusantara.</p><div class="result-grid"><div class="result-box"><strong>${score}</strong><small>Total skor</small></div><div class="result-box"><strong>${correctCount}/6</strong><small>Jawaban benar</small></div><div class="result-box"><strong>${pct}%</strong><small>Ketepatan</small></div></div><div class="factbox"><b>Gelar petualang:</b> ${rank}<br><b>Koin terkumpul:</b> ${coins}<br><b>Mode:</b> ${mode==="group"?"Kelompok":"Individual"}</div><h3>📋 Evaluasi pemahaman</h3><p>${pct>=85?"Sangat baik! Kamu memahami sebagian besar materi. Pertahankan dan praktikkan sikap menjaga kearifan lokal.":pct>=65?"Bagus! Kamu sudah memahami banyak hal. Baca kembali materi pada misi yang masih membingungkan.":"Terus berlatih! Pelajari kembali enam materi, lalu mainkan lagi agar pemahamanmu meningkat."}</p><p><b>Aksi nyata:</b> Tuliskan satu tindakan yang akan kamu lakukan untuk menjaga budaya atau lingkungan di daerahmu.</p><textarea id="reflection" placeholder="Saya akan ..." style="width:100%;min-height:75px;padding:10px;border:1px solid #cbd9e1;border-radius:10px"></textarea><div class="actions"><button class="btn primary" onclick="printResult()">🖨️ Cetak hasil</button><button class="btn gold" onclick="restart()">🔁 Main Lagi</button><button class="btn secondary" onclick="backHome()">Beranda</button></div><p class="hint">Hasil permainan ditampilkan pada perangkat ini. Gunakan tombol Cetak untuk menyimpan sebagai PDF atau mencetak.</p>`);}
 function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -237,7 +294,8 @@ let activeAttempt = null;
 const ready = (async()=>{if(!auth.currentUser) await signInAnonymously(auth);return auth.currentUser.uid;})();
 window.firebaseReady = ready;
 window.firebaseCreateAttempt = async()=>{const uid=await ready;const node=push(ref(db,`gameResults/${uid}`));activeAttempt=node.key;return activeAttempt;};
-window.firebaseSaveProgress = async(key,payload)=>{const uid=auth.currentUser?.uid;if(!uid||!key)throw new Error("Sesi pemain tidak ditemukan.");const path=`gameResults/${uid}/${key}`;const current=await get(ref(db,path));const old=current.exists()?current.val():{};const data={...old,...payload,startedAt:old.startedAt||Date.now(),updatedAt:Date.now()};await set(ref(db,path),data);return true;};
+const attemptStartedAt = new Map();
+window.firebaseSaveProgress = async(key,payload)=>{const uid=auth.currentUser?.uid;if(!uid||!key)throw new Error("Sesi pemain tidak ditemukan.");if(auth.currentUser.isAnonymous!==true)throw new Error("Sesi siswa tidak lagi anonim. Muat ulang halaman dan mulai permainan kembali.");const path=`gameResults/${uid}/${key}`;const startedAt=attemptStartedAt.get(key)||Date.now();attemptStartedAt.set(key,startedAt);const data={...payload,startedAt,updatedAt:Date.now()};await set(ref(db,path),data);return true;};
 window.firebaseTeacherLogin = async(email,password)=>{await signInWithEmailAndPassword(auth,email,password);};
 window.firebaseGetResults = async()=>{const snap=await get(ref(db,"gameResults"));if(!snap.exists())return[];const all=snap.val(),rows=[];Object.entries(all).forEach(([uid,attempts])=>{Object.entries(attempts||{}).forEach(([attemptId,r])=>rows.push({...r,uid,attemptId}));});return rows;};
 window.firebaseTeacherLogout = async()=>{await signOut(auth);await signInAnonymously(auth);};
