@@ -47,6 +47,8 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:16/7;border-radius:13px
 .footer{text-align:center;color:#748897;font-size:11px;padding:18px}
 @media(max-width:850px){.hero{grid-template-columns:1fr}.hero-art{min-height:210px}.game-layout{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:1fr 1fr}.mission-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.shell{padding:9px}.topbar{border-radius:13px;padding:11px}.pill{display:none}.hero-art{min-height:175px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.mission-grid{grid-template-columns:1fr 1fr;gap:8px}.mission{padding:10px;gap:7px}.mission .emoji{font-size:23px}.mission b{font-size:12px}.mission small{font-size:10px}.game-layout{gap:9px}.sidebar{grid-template-columns:1fr}.stage-wrap{padding:6px}.stage-controls{font-size:10px}.touch-controls{display:flex}.result-grid{grid-template-columns:repeat(3,1fr)}.result-box strong{font-size:20px}}
+
+.teacher-dashboard{width:100%;min-width:0}.teacher-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.teacher-head h2{margin:3px 0}.teacher-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 18px}.teacher-stat{background:linear-gradient(135deg,#eef8f7,#f1f5fa);border:1px solid #dce9ec;border-radius:15px;padding:15px;text-align:center}.teacher-stat strong{display:block;color:#0f9d8a;font-size:27px;line-height:1.2}.teacher-stat span{display:block;color:#64788b;font-size:12px;margin-top:4px}.teacher-filter{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:12px 0}.teacher-filter .field{flex:1;min-width:160px}.teacher-actions{display:flex;gap:8px;flex-wrap:wrap}.teacher-table-wrap{width:100%;overflow:auto;max-height:48vh;border:1px solid #e0e9ed;border-radius:12px}.teacher-table{width:100%;border-collapse:collapse;font-size:12px;min-width:850px}.teacher-table th{position:sticky;top:0;background:#edf5f7;color:#18324b;padding:11px 9px;text-align:left;white-space:nowrap}.teacher-table td{padding:10px 9px;border-bottom:1px solid #e7eef1;vertical-align:top}.teacher-table tbody tr:hover{background:#f8fbfc}.teacher-table details summary{cursor:pointer;color:#087968;font-weight:800}.answer-details{min-width:190px;max-width:260px;padding:8px 0}.answer-detail{padding:7px 0;border-bottom:1px dashed #dce5e9}.answer-detail b,.answer-detail span,.answer-detail small{display:block}.answer-detail span{margin:3px 0;color:#526a7c}.answer-detail small,.subcell{color:#748897}.score-value{color:#0f9d8a;font-size:15px}.empty-row{text-align:center!important;padding:26px!important;color:#718391}.modal{width:min(1100px,100%)}@media(max-width:600px){.teacher-stats{gap:6px}.teacher-stat{padding:10px 5px}.teacher-stat strong{font-size:22px}.teacher-head{align-items:center}.teacher-actions .btn{padding:10px 12px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -253,19 +255,92 @@ bindHold("leftBtn","left");bindHold("rightBtn","right");$("jumpBtn").addEventLis
 document.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key))e.preventDefault();if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=true;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=true;if(e.key===" "||e.key==="ArrowUp"||e.key.toLowerCase()==="w")jump();});
 document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")keys.left=false;if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")keys.right=false;});
 function showLesson(){let m=missions[level];showModal(`<span class="lesson-tag">📚 Materi misi ${level+1}</span><h2>${m.icon} ${m.name}</h2><p>${m.desc}</p><div class="factbox">${m.lesson}</div><p><b>Siap menguji pemahamanmu?</b> Jawab satu tantangan berikut untuk menyelesaikan misi.</p><div class="actions"><button class="btn primary" onclick="showQuestion()">Mulai Tantangan ➜</button></div>`);}
-function showQuestion(){let m=missions[level];questionOpen=true;showModal(`<span class="lesson-tag">🧠 Tantangan pengetahuan</span><h2>${m.icon} ${m.name}</h2><div class="question">${m.question}</div><div class="answers">${m.answers.map((a,i)=>`<button class="answer" id="ans${i}" onclick="chooseAnswer(${i})">${String.fromCharCode(65+i)}. ${a}</button>`).join("")}</div><div class="feedback" id="feedback"></div><div class="actions" id="nextArea"></div>`);}
-async function chooseAnswer(i){if(!questionOpen)return;questionOpen=false;let m=missions[level],good=i===m.correct;answered++;missionAnswers[level]={selected:i,correct:good,question:m.question};if(good){correctCount++;score+=100;}else{score=Math.max(0,score-10);}m.answers.forEach((a,j)=>{let b=$("ans"+j);b.disabled=true;if(j===m.correct)b.classList.add("correct");else if(j===i)b.classList.add("wrong");});let fb=$("feedback");fb.className="feedback "+(good?"good":"bad");fb.innerHTML=(good?"<b>🌟 Hebat! Jawabanmu benar.</b> ":"<b>💡 Belum tepat. Yuk, pelajari lagi.</b> ")+m.explain+`<br><b>${good?"+100":"-10"} poin</b>`;$("nextArea").innerHTML=`<button class="btn primary" onclick="completeLevel()">Lanjutkan ➜</button>`;updateHud();await persistProgress("Berjalan");}
+function showQuestion(){
+ let m=missions[level];
+ questionOpen=true;
+ // Acak posisi opsi setiap kali soal dibuka; kunci mengikuti indeks baru.
+ const shuffled=m.answers.map((text,originalIndex)=>({text,originalIndex}));
+ for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+ window.currentShuffledAnswers=shuffled;
+ window.currentCorrectIndex=shuffled.findIndex(x=>x.originalIndex===m.correct);
+ showModal(`<span class="lesson-tag">🧠 Tantangan pengetahuan</span><h2>${m.icon} ${m.name}</h2><div class="question">${m.question}</div><div class="answers">${shuffled.map((a,i)=>`<button class="answer" id="ans${i}" onclick="chooseAnswer(${i})">${String.fromCharCode(65+i)}. ${a.text}</button>`).join("")}</div><div class="feedback" id="feedback"></div><div class="actions" id="nextArea"></div>`);
+}
+async function chooseAnswer(i){
+ if(!questionOpen)return;
+ questionOpen=false;
+ let m=missions[level],good=i===window.currentCorrectIndex;
+ answered++;
+ missionAnswers[level]={selected:String.fromCharCode(65+i),selectedText:window.currentShuffledAnswers[i].text,correct:good,correctAnswer:window.currentShuffledAnswers[window.currentCorrectIndex].text,question:m.question};
+ if(good){correctCount++;score+=100;}else{score=Math.max(0,score-10);}
+ window.currentShuffledAnswers.forEach((a,j)=>{let b=$("ans"+j);b.disabled=true;if(j===window.currentCorrectIndex)b.classList.add("correct");else if(j===i)b.classList.add("wrong");});
+ let fb=$("feedback");fb.className="feedback "+(good?"good":"bad");
+ fb.innerHTML=(good?"<b>🌟 Hebat! Jawabanmu benar.</b> ":"<b>💡 Belum tepat. Yuk, pelajari lagi.</b> ")+m.explain+`<br><b>${good?"+100":"-10"} poin</b>`;
+ $("nextArea").innerHTML=`<button class="btn primary" onclick="completeLevel()">Lanjutkan ➜</button>`;
+ updateHud();await persistProgress("Berjalan");
+}
 async function completeLevel(){levelDone[level]=true;score+=25;await persistProgress(level===5?"Selesai":"Berjalan");if(level<5){level++;closeModal();startLevel();await persistProgress("Berjalan");}else{closeModal();await finishGame();}}
-async function finishGame(){stopGame();await persistProgress("Selesai");$("progressBar").style.width="100%";$("levelLabel").textContent="Semua misi selesai!";let pct=Math.round(correctCount/6*100),rank=pct>=85?"Pahlawan Kearifan 🌟":pct>=65?"Penjaga Nusantara 🏅":"Penjelajah Tangguh 🌱";showModal(`<div class="eyebrow">Petualangan selesai</div><h2>🎉 Selamat, ${player}!</h2><p>Kamu telah menyelesaikan enam wilayah dan belajar tentang cara menjaga warisan budaya serta alam Nusantara.</p><div class="result-grid"><div class="result-box"><strong>${score}</strong><small>Total skor</small></div><div class="result-box"><strong>${correctCount}/6</strong><small>Jawaban benar</small></div><div class="result-box"><strong>${pct}%</strong><small>Ketepatan</small></div></div><div class="factbox"><b>Gelar petualang:</b> ${rank}<br><b>Koin terkumpul:</b> ${coins}<br><b>Mode:</b> ${mode==="group"?"Kelompok":"Individual"}</div><h3>📋 Evaluasi pemahaman</h3><p>${pct>=85?"Sangat baik! Kamu memahami sebagian besar materi. Pertahankan dan praktikkan sikap menjaga kearifan lokal.":pct>=65?"Bagus! Kamu sudah memahami banyak hal. Baca kembali materi pada misi yang masih membingungkan.":"Terus berlatih! Pelajari kembali enam materi, lalu mainkan lagi agar pemahamanmu meningkat."}</p><p><b>Aksi nyata:</b> Tuliskan satu tindakan yang akan kamu lakukan untuk menjaga budaya atau lingkungan di daerahmu.</p><textarea id="reflection" placeholder="Saya akan ..." style="width:100%;min-height:75px;padding:10px;border:1px solid #cbd9e1;border-radius:10px"></textarea><div class="actions"><button class="btn primary" onclick="printResult()">🖨️ Cetak hasil</button><button class="btn gold" onclick="restart()">🔁 Main Lagi</button><button class="btn secondary" onclick="backHome()">Beranda</button></div><p class="hint">Hasil permainan ditampilkan pada perangkat ini. Gunakan tombol Cetak untuk menyimpan sebagai PDF atau mencetak.</p>`);}
+async function finishGame(){stopGame();await persistProgress("Selesai");$("progressBar").style.width="100%";$("levelLabel").textContent="Semua misi selesai!";let pct=Math.round(correctCount/6*100),rank=pct>=85?"Pahlawan Kearifan 🌟":pct>=65?"Penjaga Nusantara 🏅":"Penjelajah Tangguh 🌱";showModal(`<div class="eyebrow">Petualangan selesai</div><h2>🎉 Selamat, ${player}!</h2><p>Kamu telah menyelesaikan enam wilayah dan belajar tentang cara menjaga warisan budaya serta alam Nusantara.</p><div class="result-grid"><div class="result-box"><strong>${score}</strong><small>Total skor</small></div><div class="result-box"><strong>${correctCount}/6</strong><small>Jawaban benar</small></div><div class="result-box"><strong>${pct}%</strong><small>Ketepatan</small></div></div><div class="factbox"><b>Gelar petualang:</b> ${rank}<br><b>Koin terkumpul:</b> ${coins}<br><b>Mode:</b> ${mode==="group"?"Kelompok":"Individual"}</div><h3>📋 Evaluasi pemahaman</h3><p>${pct>=85?"Sangat baik! Kamu memahami sebagian besar materi. Pertahankan dan praktikkan sikap menjaga kearifan lokal.":pct>=65?"Bagus! Kamu sudah memahami banyak hal. Baca kembali materi pada misi yang masih membingungkan.":"Terus berlatih! Pelajari kembali enam materi, lalu mainkan lagi agar pemahamanmu meningkat."}</p><p><b>Aksi nyata:</b> Tuliskan satu tindakan yang akan kamu lakukan untuk menjaga budaya atau lingkungan di daerahmu.</p><textarea id="reflection" placeholder="Saya akan ..." style="width:100%;min-height:75px;padding:10px;border:1px solid #cbd9e1;border-radius:10px"></textarea><div class="actions"><button class="btn primary" onclick="printResult()">🖨️ Cetak hasil</button><button class="btn gold" onclick="restart()">🔁 Main Lagi</button><button class="btn secondary" onclick="backHome()">Beranda</button></div><p class="hint">Hasil permainan tersimpan di Firebase untuk direkap oleh guru. Gunakan tombol Cetak untuk menyimpan sebagai PDF atau mencetak.</p>`);}
 function escapeHTML(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 async function persistProgress(status){if(!attemptKey||!window.firebaseSaveProgress)return;const completed=levelDone.map((v,i)=>v?i+1:null).filter(Boolean);const payload={studentName:player,className:studentClass,playMode:mode,groupName:mode==="group"?teamName:"",groupMembers:mode==="group"?teamNames:"",status,currentMission:Math.min(level+1,6),completedMissions:completed.join(","),completedCount:completed.length,score,coins,lives,correctAnswers:correctCount,totalQuestions:answered,accuracy:answered?Math.round(correctCount/answered*100):0,missionAnswers,updatedAt:Date.now(),completedAt:status==="Selesai"?Date.now():null};try{await window.firebaseSaveProgress(attemptKey,payload);$("cloudStatus").textContent="☁️ Hasil tersimpan otomatis • "+(status==="Selesai"?"Semua misi selesai":"Progres diperbarui");}catch(err){$("cloudStatus").textContent="⚠️ Gagal menyimpan: "+(err.message||"periksa koneksi");console.error("Firebase save error",err);}}
 function openTeacherLogin(){showModal(`<h2>🔐 Dashboard Guru</h2><p>Masuk menggunakan akun guru Firebase Authentication (Email/Password).</p><div class="field"><label>Email guru</label><input id="teacherEmail" type="email" autocomplete="username" placeholder="guru@sekolah.sch.id"></div><div class="field" style="margin-top:10px"><label>Kata sandi</label><input id="teacherPassword" type="password" autocomplete="current-password" placeholder="Kata sandi akun guru"></div><div id="teacherError" class="feedback bad"></div><div class="actions"><button class="btn primary" onclick="teacherLogin()">Masuk</button><button class="btn secondary" onclick="closeModal()">Tutup</button></div><p class="hint">Akun guru harus dibuat di Firebase Authentication dan emailnya harus diizinkan pada Realtime Database Rules.</p>`);}
 async function teacherLogin(){const email=$("teacherEmail").value.trim(),password=$("teacherPassword").value;if(!email||!password){$("teacherError").textContent="Isi email dan kata sandi."; $("teacherError").className="feedback bad";return;}try{await window.firebaseTeacherLogin(email,password);await renderTeacherDashboard();}catch(e){$("teacherError").textContent="Login gagal: "+(e.message||"periksa akun guru");$("teacherError").className="feedback bad";}}
 async function renderTeacherDashboard(){try{const rows=await window.firebaseGetResults();window.teacherRows=rows;showTeacherTable(rows);}catch(e){showModal(`<h2>Dashboard tidak dapat dibuka</h2><p>${escapeHTML(e.message||"Akses ditolak. Periksa aturan database dan akun guru.")}</p><div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup</button></div>`);}}
-function showTeacherTable(rows){const sorted=[...rows].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));const done=sorted.filter(r=>r.status==="Selesai").length;const active=sorted.filter(r=>r.status!=="Selesai").length;const cls=[...new Set(sorted.map(r=>r.className).filter(Boolean))].sort();showModal(`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><div class="eyebrow">Panel pemantauan</div><h2>📊 Dashboard Guru</h2></div><button class="btn secondary" onclick="teacherLogout()" style="padding:8px 11px">Keluar</button></div><div class="result-grid"><div class="result-box"><strong>${sorted.length}</strong><small>Total percobaan</small></div><div class="result-box"><strong>${done}</strong><small>Selesai</small></div><div class="result-box"><strong>${active}</strong><small>Belum selesai</small></div></div><div class="formgrid" style="margin:12px 0"><div class="field"><label>Filter kelas</label><select id="filterClass" onchange="filterTeacherRows()"><option value="">Semua kelas</option>${cls.map(c=>`<option>${escapeHTML(c)}</option>`).join("")}</select></div><div class="field"><label>Filter status</label><select id="filterStatus" onchange="filterTeacherRows()"><option value="">Semua status</option><option value="Selesai">Selesai</option><option value="Berjalan">Berjalan</option></select></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn primary" onclick="refreshTeacherRows()">↻ Perbarui</button><button class="btn gold" onclick="exportTeacherCSV()">⬇️ Unduh CSV</button></div><div style="overflow:auto;max-height:42vh"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:620px"><thead><tr style="background:#eef5f7"><th style="padding:9px;text-align:left">Nama / Kelompok</th><th style="padding:9px">Kelas</th><th style="padding:9px">Mode</th><th style="padding:9px">Misi</th><th style="padding:9px">Skor</th><th style="padding:9px">Akurasi</th><th style="padding:9px">Status</th><th style="padding:9px">Waktu</th></tr></thead><tbody id="teacherTableBody"></tbody></table></div><p class="hint" id="teacherCount"></p><div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup Dashboard</button></div>`);window.teacherRows=sorted;filterTeacherRows();}
-function filterTeacherRows(){if(!window.teacherRows)return;const c=$("filterClass")?.value||"",st=$("filterStatus")?.value||"";const rows=window.teacherRows.filter(r=>(!c||r.className===c)&&(!st||r.status===st));$("teacherTableBody").innerHTML=rows.map(r=>{const nm=r.playMode==="group"?(r.groupName||"Kelompok")+" / "+(r.studentName||""):(r.studentName||"");const progress=(Number(r.completedCount)||0)+"/6";return `<tr style="border-bottom:1px solid #e5edf0"><td style="padding:8px">${escapeHTML(nm)}${r.groupMembers?`<div style="color:#718391">${escapeHTML(r.groupMembers)}</div>`:""}</td><td style="padding:8px;text-align:center">${escapeHTML(r.className||"-")}</td><td style="padding:8px;text-align:center">${r.playMode==="group"?"Kelompok":"Individu"}</td><td style="padding:8px;text-align:center">${progress}</td><td style="padding:8px;text-align:center">${Number(r.score||0)}</td><td style="padding:8px;text-align:center">${Number(r.accuracy||0)}%</td><td style="padding:8px;text-align:center">${r.status==="Selesai"?"✅ Selesai":"🟡 Berjalan"}</td><td style="padding:8px;text-align:center">${r.updatedAt?new Date(r.updatedAt).toLocaleString("id-ID"):"-"}</td></tr>`}).join("")||`<tr><td colspan="8" style="padding:18px;text-align:center;color:#718391">Belum ada data sesuai filter.</td></tr>`;$("teacherCount").textContent=`Menampilkan ${rows.length} dari ${window.teacherRows.length} catatan permainan. Setiap permainan ulang tercatat sebagai percobaan baru.`;}
+function showTeacherTable(rows){
+ const completed=[...rows].filter(r=>r.status==="Selesai" && Number(r.completedCount)>=6)
+   .sort((a,b)=>(b.completedAt||b.updatedAt||0)-(a.completedAt||a.updatedAt||0));
+ const cls=[...new Set(completed.map(r=>r.className).filter(Boolean))].sort();
+ showModal(`<div class="teacher-dashboard">
+   <div class="teacher-head"><div><div class="eyebrow">Rekap hasil pembelajaran</div><h2>📊 Dashboard Guru</h2><p class="hint">Menampilkan siswa yang telah menyelesaikan seluruh 6 misi.</p></div><button class="btn secondary" onclick="teacherLogout()">Keluar</button></div>
+   <div class="teacher-stats">
+    <div class="teacher-stat"><strong id="dashTotal">${completed.length}</strong><span>Siswa selesai</span></div>
+    <div class="teacher-stat"><strong id="dashAverage">${completed.length?Math.round(completed.reduce((s,r)=>s+(Number(r.score)||0),0)/completed.length):0}</strong><span>Rata-rata skor</span></div>
+    <div class="teacher-stat"><strong id="dashAccuracy">${completed.length?Math.round(completed.reduce((s,r)=>s+(Number(r.accuracy)||0),0)/completed.length):0}%</strong><span>Rata-rata akurasi</span></div>
+   </div>
+   <div class="teacher-filter"><div class="field"><label>Filter kelas</label><select id="filterClass" onchange="filterTeacherRows()"><option value="">Semua kelas</option>${cls.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join("")}</select></div>
+   <div class="teacher-actions"><button class="btn primary" onclick="refreshTeacherRows()">↻ Perbarui data</button><button class="btn gold" onclick="exportTeacherCSV()">⬇️ Unduh CSV</button></div></div>
+   <div class="teacher-table-wrap"><table class="teacher-table"><thead><tr><th>Nama siswa / kelompok</th><th>Kelas</th><th>Mode</th><th>Skor</th><th>Benar</th><th>Akurasi</th><th>Koin</th><th>Selesai</th><th>Rincian</th></tr></thead><tbody id="teacherTableBody"></tbody></table></div>
+   <p class="hint" id="teacherCount"></p>
+   <div class="actions"><button class="btn secondary" onclick="closeModal()">Tutup Dashboard</button></div>
+ </div>`);
+ window.teacherRows=completed;
+ filterTeacherRows();
+}
+function filterTeacherRows(){
+ if(!window.teacherRows)return;
+ const c=$("filterClass")?.value||"";
+ const rows=window.teacherRows.filter(r=>!c||r.className===c);
+ $("teacherTableBody").innerHTML=rows.map((r,index)=>{
+  const nm=r.playMode==="group"?(r.groupName||"Kelompok")+" / "+(r.studentName||""):(r.studentName||"-");
+  const when=r.completedAt||r.updatedAt;
+  const details=Object.entries(r.missionAnswers||{}).map(([missionNo,a])=>{
+   const mission=missions[Number(missionNo)]?.name||("Misi "+(Number(missionNo)+1));
+   return `<div class="answer-detail"><b>${escapeHTML(mission)}</b><span>${a.correct?"✅ Benar":"❌ Salah"} · Pilihan ${escapeHTML(a.selected||"-")}</span><small>${escapeHTML(a.selectedText||"")}</small></div>`;
+  }).join("")||"Belum ada rincian jawaban";
+  return `<tr>
+   <td><b>${escapeHTML(nm)}</b>${r.groupMembers?`<small class="subcell">${escapeHTML(r.groupMembers)}</small>`:""}</td>
+   <td>${escapeHTML(r.className||"-")}</td><td>${r.playMode==="group"?"Kelompok":"Individu"}</td>
+   <td><b class="score-value">${Number(r.score)||0}</b></td>
+   <td>${Number(r.correctAnswers)||0}/${Number(r.totalQuestions)||6}</td>
+   <td>${Number(r.accuracy)||0}%</td><td>${Number(r.coins)||0}</td>
+   <td>${when?new Date(when).toLocaleString("id-ID"):"-"}</td>
+   <td><details><summary>Lihat jawaban</summary><div class="answer-details">${details}</div></details></td>
+  </tr>`;
+ }).join("")||`<tr><td colspan="9" class="empty-row">Belum ada siswa yang menyelesaikan seluruh misi pada kelas ini.</td></tr>`;
+ $("teacherCount").textContent=`Menampilkan ${rows.length} dari ${window.teacherRows.length} siswa yang telah menyelesaikan permainan.`;
+}
 async function refreshTeacherRows(){await renderTeacherDashboard();}
-function exportTeacherCSV(){const rows=window.teacherRows||[];const head=["Nama Siswa/Koordinator","Kelas","Mode","Nama Kelompok","Anggota","Status","Misi Selesai","Skor","Koin","Jawaban Benar","Total Soal","Akurasi","Waktu Mulai","Pembaruan"];const esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"';const lines=[head.map(esc).join(",")];rows.forEach(r=>lines.push([r.studentName,r.className,r.playMode,r.groupName,r.groupMembers,r.status,(Number(r.completedCount)||0)+"/6",r.score,r.coins,r.correctAnswers,r.totalQuestions,r.accuracy,r.startedAt?new Date(r.startedAt).toLocaleString("id-ID"):"",r.updatedAt?new Date(r.updatedAt).toLocaleString("id-ID"):""].map(esc).join(",")));const blob=new Blob(["\\ufeff"+lines.join("\\r\\n")],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="rekap_petualangan_kearifan_lokal.csv";a.click();URL.revokeObjectURL(url);}
+function exportTeacherCSV(){
+ const rows=window.teacherRows||[];
+ const head=["Nama Siswa/Koordinator","Kelas","Mode","Nama Kelompok","Anggota","Status","Misi Selesai","Skor","Koin","Jawaban Benar","Total Soal","Akurasi","Waktu Mulai","Waktu Selesai","Rincian Jawaban"];
+ const esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+ const lines=[head.map(esc).join(",")];
+ rows.forEach(r=>{
+  const answers=Object.entries(r.missionAnswers||{}).map(([n,a])=>`Misi ${Number(n)+1}: ${a.correct?"Benar":"Salah"} (${a.selected||"-"} - ${a.selectedText||""})`).join(" | ");
+  lines.push([r.studentName,r.className,r.playMode,r.groupName,r.groupMembers,r.status,(Number(r.completedCount)||0)+"/6",r.score,r.coins,r.correctAnswers,r.totalQuestions,r.accuracy,r.startedAt?new Date(r.startedAt).toLocaleString("id-ID"):"",r.completedAt?new Date(r.completedAt).toLocaleString("id-ID"):"",answers].map(esc).join(","));
+ });
+ const blob=new Blob(["\\ufeff"+lines.join("\\r\\n")],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="rekap_siswa_selesai_petualangan.csv";a.click();URL.revokeObjectURL(url);
+}
 async function teacherLogout(){try{await window.firebaseTeacherLogout();}catch(e){}closeModal();}
 $("teacherDashBtn").onclick=openTeacherLogin;
 function printResult(){let reflection=$("reflection")?.value||"Belum diisi";let text=`HASIL PETUALANGAN PENJAGA KEARIFAN LOKAL\nPemain/Kelompok: ${player}\nMode: ${mode==="group"?"Kelompok":"Individual"}\nSkor: ${score}\nJawaban benar: ${correctCount}/6\nKoin: ${coins}\nRefleksi: ${reflection}`;let w=window.open("","_blank");if(!w){alert("Izinkan pop-up untuk mencetak hasil.");return;}w.document.write(`<pre style="font:16px system-ui;white-space:pre-wrap">${text.replace(/</g,"&lt;")}</pre>`);w.document.close();w.print();}
@@ -277,7 +352,8 @@ window.closeModal=closeModal;window.showQuestion=showQuestion;window.chooseAnswe
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getDatabase, ref, push, set, update, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+import { getDatabase, ref, push, set, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyA7SdLtfLGZU-jh9MFt0_nDsJWc_gktXNk",
   authDomain: "jejak-pahlawan-mihuri.firebaseapp.com",
@@ -287,18 +363,99 @@ const firebaseConfig = {
   messagingSenderId: "503390306280",
   appId: "1:503390306280:web:3ec922450ce03172432e5d"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-let activeAttempt = null;
-const ready = (async()=>{if(!auth.currentUser) await signInAnonymously(auth);return auth.currentUser.uid;})();
-window.firebaseReady = ready;
-window.firebaseCreateAttempt = async()=>{const uid=await ready;const node=push(ref(db,`gameResults/${uid}`));activeAttempt=node.key;return activeAttempt;};
-window.firebaseSaveProgress = async(key,payload)=>{const uid=auth.currentUser?.uid;if(!uid||!key)throw new Error("Sesi pemain tidak ditemukan.");const path=`gameResults/${uid}/${key}`;const current=await get(ref(db,path));const old=current.exists()?current.val():{};const data={...old,...payload,startedAt:old.startedAt||Date.now(),updatedAt:Date.now()};await set(ref(db,path),data);return true;};
-window.firebaseTeacherLogin = async(email,password)=>{await signInWithEmailAndPassword(auth,email,password);};
-window.firebaseGetResults = async()=>{const snap=await get(ref(db,"gameResults"));if(!snap.exists())return[];const all=snap.val(),rows=[];Object.entries(all).forEach(([uid,attempts])=>{Object.entries(attempts||{}).forEach(([attemptId,r])=>rows.push({...r,uid,attemptId}));});return rows;};
-window.firebaseTeacherLogout = async()=>{await signOut(auth);await signInAnonymously(auth);};
-ready.then(()=>{const el=document.getElementById("cloudStatus");if(el)el.textContent="☁️ Firebase terhubung. Hasil permainan akan dicatat otomatis.";}).catch(e=>{const el=document.getElementById("cloudStatus");if(el)el.textContent="⚠️ Firebase belum terhubung: "+e.message;console.error(e);});
+const attemptOwners = new Map();
+
+async function ensurePlayerAuth(){
+  if(!auth.currentUser) await signInAnonymously(auth);
+  return auth.currentUser.uid;
+}
+
+window.firebaseReady = ensurePlayerAuth();
+
+window.firebaseCreateAttempt = async()=>{
+  const uid = await ensurePlayerAuth();
+  const node = push(ref(db, `gameResults/${uid}`));
+  const attemptId = node.key;
+  attemptOwners.set(attemptId, uid);
+  // Create an initial record so a play attempt is visible even if the browser closes early.
+  await set(node, {
+    studentName: player,
+    className: studentClass,
+    playMode: mode,
+    groupName: mode === "group" ? teamName : "",
+    groupMembers: mode === "group" ? teamNames : "",
+    status: "Berjalan",
+    currentMission: 1,
+    completedCount: 0,
+    score: 0,
+    startedAt: Date.now(),
+    updatedAt: Date.now()
+  });
+  return attemptId;
+};
+
+window.firebaseSaveProgress = async(key, payload)=>{
+  const uid = attemptOwners.get(key);
+  if(!uid || !key) throw new Error("Identitas sesi permainan tidak ditemukan. Muat ulang halaman dan mulai permainan kembali.");
+  const path = `gameResults/${uid}/${key}`;
+  const current = await get(ref(db, path));
+  const old = current.exists() ? current.val() : {};
+  const data = {
+    ...old,
+    ...payload,
+    startedAt: old.startedAt || Date.now(),
+    updatedAt: Date.now()
+  };
+  await set(ref(db, path), data);
+  return true;
+};
+
+window.firebaseTeacherLogin = async(email,password)=>{
+  await signInWithEmailAndPassword(auth,email,password);
+};
+
+window.firebaseGetResults = async()=>{
+  const user = auth.currentUser;
+  if(!user) throw new Error("Sesi guru tidak ditemukan. Silakan masuk kembali.");
+  // Read permission is controlled by the teacher rule in Firebase Realtime Database Rules.
+  const snap = await get(ref(db, "gameResults"));
+  if(!snap.exists()) return [];
+  const all = snap.val(), rows = [];
+  Object.entries(all).forEach(([uid, attempts])=>{
+    if(!attempts || typeof attempts !== "object") return;
+    // Supports both the existing nested format and flat attempt records from future migrations.
+    if(attempts.studentName || attempts.status){
+      rows.push({...attempts, uid, attemptId: uid});
+    } else {
+      Object.entries(attempts).forEach(([attemptId, record])=>{
+        if(record && typeof record === "object") rows.push({...record, uid, attemptId});
+      });
+    }
+  });
+  return rows;
+};
+
+window.firebaseTeacherLogout = async()=>{
+  await signOut(auth);
+  await signInAnonymously(auth);
+};
+
+window.addEventListener("unhandledrejection", event=>{
+  console.error("Firebase operation rejected:", event.reason);
+});
+
+window.firebaseReady.then(()=>{
+  const el = document.getElementById("cloudStatus");
+  if(el) el.textContent = "☁️ Firebase terhubung. Hasil permainan akan dicatat otomatis.";
+}).catch(error=>{
+  const el = document.getElementById("cloudStatus");
+  if(el) el.textContent = "⚠️ Firebase belum terhubung: " + error.message;
+  console.error("Firebase initialization error:", error);
+});
 </script>
 
 </body>
