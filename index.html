@@ -374,6 +374,143 @@ body.game-active .sidecard:nth-child(3) { display:none; }
   }
 }
 
+
+/* ===== FINAL HP LAYOUT: kontrol di luar arena dan tanpa latar tombol ===== */
+@media (pointer: coarse) {
+  body.game-active .game-layout {
+    min-height:0 !important;
+    overflow:hidden;
+  }
+  body.game-active .stage-wrap {
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:flex-start !important;
+    align-items:stretch !important;
+    gap:2px !important;
+    min-height:0 !important;
+    height:100% !important;
+    overflow:hidden !important;
+    padding:6px !important;
+  }
+  body.game-active #stage,
+  body.game-active canvas {
+    position:relative !important;
+    z-index:1 !important;
+    display:block !important;
+    flex:1 1 0 !important;
+    min-height:0 !important;
+    min-width:0 !important;
+    width:100% !important;
+    height:100% !important;
+    max-height:none !important;
+    aspect-ratio:auto !important;
+    object-fit:contain !important;
+    margin:0 auto !important;
+  }
+  body.game-active .stage-controls {
+    position:relative !important;
+    inset:auto !important;
+    z-index:3 !important;
+    display:flex !important;
+    flex:0 0 66px !important;
+    width:100% !important;
+    min-height:66px !important;
+    height:66px !important;
+    box-sizing:border-box !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    margin:0 !important;
+    padding:2px 10px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  body.game-active .stage-controls > span {
+    display:none !important;
+  }
+  body.game-active .touch-controls {
+    position:static !important;
+    z-index:4 !important;
+    display:flex !important;
+    width:100% !important;
+    height:100% !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:0 !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+  body.game-active .touch-controls button,
+  body.game-active #jumpBtn,
+  body.game-active #leftBtn,
+  body.game-active #rightBtn {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    flex:0 0 66px !important;
+    width:66px !important;
+    min-width:66px !important;
+    height:62px !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    color:#ffffff !important;
+    font-size:42px !important;
+    font-weight:1000 !important;
+    line-height:1 !important;
+    text-shadow:
+      0 2px 3px rgba(0,0,0,.95),
+      0 0 7px rgba(0,0,0,.8) !important;
+    -webkit-tap-highlight-color:transparent !important;
+    touch-action:none !important;
+  }
+  body.game-active #jumpBtn {
+    order:0 !important;
+    margin-right:auto !important;
+  }
+  body.game-active #leftBtn {
+    order:1 !important;
+    margin-left:auto !important;
+  }
+  body.game-active #rightBtn {
+    order:2 !important;
+    margin-left:12px !important;
+  }
+  body.game-active .touch-controls button:active {
+    transform:scale(.92) !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    filter:brightness(1.35) !important;
+  }
+}
+@media (max-height:500px) and (orientation:landscape) and (pointer:coarse) {
+  body.game-active .stage-controls {
+    flex-basis:58px !important;
+    min-height:58px !important;
+    height:58px !important;
+  }
+  body.game-active .touch-controls button,
+  body.game-active #jumpBtn,
+  body.game-active #leftBtn,
+  body.game-active #rightBtn {
+    height:54px !important;
+    font-size:38px !important;
+  }
+}
+@media (max-width:850px) and (orientation:portrait) and (pointer:coarse) {
+  body.game-active .stage-controls {
+    flex-basis:62px !important;
+    min-height:62px !important;
+    height:62px !important;
+  }
+}
+
 </style>
 </head>
 <body>
